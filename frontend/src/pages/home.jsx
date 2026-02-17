@@ -10,14 +10,10 @@ function Home() {
 
   const navigate = useNavigate();
 
-  const [loading, setLoading] = useState(false);
   const [messages, setMessages] = useState([]);
   const [typingText, setTypingText] = useState("");
   const [loadingAI, setLoadingAI] = useState(false);
   const [listening, setListening] = useState(false);
-  const [animatedCount, setAnimatedCount] = useState(0);
-  const [limitStartTime, setLimitStartTime] = useState(null);
-  const [timeLeft, setTimeLeft] = useState("");
   const [speechEnabled, setSpeechEnabled] = useState(false);
 
   const recognitionRef = useRef(null);
@@ -25,120 +21,65 @@ function Home() {
   const isSpeakingRef = useRef(false);
   const chatEndRef = useRef(null);
 
-  const synth = window.speechSynthesis;
-
   const MAX_REPLIES = 10;
   const replyCount = userData?.replyCount || 0;
   const limitReached = replyCount >= MAX_REPLIES;
 
-  // ================= UNLOCK SPEECH (ALL DEVICES) =================
+  // ================= UNLOCK SPEECH =================
   const unlockSpeech = () => {
-    if (speechEnabled) return;
+    const synth = window.speechSynthesis;
 
-    const utterance = new SpeechSynthesisUtterance(" ");
-    utterance.volume = 0.1;
-    synth.speak(utterance);
+    synth.resume();
+
+    const test = new SpeechSynthesisUtterance("Voice ready");
+    test.volume = 1; // MUST NOT be 0
+    synth.speak(test);
 
     setSpeechEnabled(true);
-    console.log("🔓 Speech Enabled");
   };
-
-  // ================= LOAD HISTORY =================
-  useEffect(() => {
-    if (userData?.messages) {
-      setMessages(userData.messages);
-    }
-  }, [userData?.messages]);
-
-  // ================= ANIMATED COUNTER =================
-  useEffect(() => {
-    let start = animatedCount;
-    let end = replyCount;
-    if (start === end) return;
-
-    const duration = 400;
-    const incrementTime = 20;
-    const steps = duration / incrementTime;
-    const increment = (end - start) / steps;
-
-    const interval = setInterval(() => {
-      start += increment;
-      if ((increment > 0 && start >= end) || (increment < 0 && start <= end)) {
-        start = end;
-        clearInterval(interval);
-      }
-      setAnimatedCount(Math.round(start));
-    }, incrementTime);
-
-    return () => clearInterval(interval);
-  }, [replyCount]);
 
   // ================= SAFE SPEAK FUNCTION =================
   const speak = (text) => {
     if (!text || !speechEnabled) return;
 
-    synth.cancel();
+    const synth = window.speechSynthesis;
+
+    if (synth.speaking) synth.cancel();
+    synth.resume();
 
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.lang = "en-US";
     utterance.rate = 1;
     utterance.pitch = 1;
 
-    const loadVoice = () => {
+    utterance.onstart = () => {
+      isSpeakingRef.current = true;
+    };
+
+    utterance.onend = () => {
+      isSpeakingRef.current = false;
+      setTimeout(() => startRecognition(), 600);
+    };
+
+    utterance.onerror = () => {
+      isSpeakingRef.current = false;
+    };
+
+    const speakWhenReady = () => {
       const voices = synth.getVoices();
 
       if (!voices.length) {
-        setTimeout(loadVoice, 200);
+        setTimeout(speakWhenReady, 300);
         return;
       }
 
       utterance.voice =
-        voices.find((v) => v.lang.includes("en")) || voices[0];
-
-      utterance.onstart = () => {
-        isSpeakingRef.current = true;
-      };
-
-      utterance.onend = () => {
-        isSpeakingRef.current = false;
-        setTimeout(startRecognition, 400);
-      };
-
-      utterance.onerror = () => {
-        isSpeakingRef.current = false;
-        startRecognition();
-      };
+        voices.find(v => v.lang.includes("en")) || voices[0];
 
       synth.speak(utterance);
     };
 
-    loadVoice();
-  };
-
-  // ================= HANDLE COMMAND =================
-  const handleCommand = (data) => {
-    const { type, userInput, response } = data;
-    speak(response);
-
-    setTimeout(() => {
-      const query = encodeURIComponent(userInput);
-
-      const routes = {
-        "google-search": `https://www.google.com/search?q=${query}`,
-        "youtube-search": `https://www.youtube.com/results?search_query=${query}`,
-        "youtube-play": `https://www.youtube.com/results?search_query=${query}`,
-        "instagram-open": `https://www.instagram.com/`,
-        "facebook-open": `https://m.facebook.com/`,
-        "linkedin-search": `https://www.linkedin.com/search/results/all/?keywords=${query}`,
-        "calculator-open": `https://www.online-calculator.com/`,
-        "get-news": `https://news.google.com/`,
-        "weather-show": `https://www.google.com/search?q=weather+${query}`,
-      };
-
-      if (routes[type]) {
-        window.location.href = routes[type];
-      }
-    }, 1200);
+    speakWhenReady();
   };
 
   // ================= START RECOGNITION =================
@@ -154,10 +95,7 @@ function Home() {
     const SpeechRecognition =
       window.SpeechRecognition || window.webkitSpeechRecognition;
 
-    if (!SpeechRecognition) {
-      console.log("Speech Recognition not supported");
-      return;
-    }
+    if (!SpeechRecognition) return;
 
     const recognition = new SpeechRecognition();
     recognition.continuous = true;
@@ -180,8 +118,7 @@ function Home() {
       }
     };
 
-    recognition.onerror = (event) => {
-      console.log("Recognition error:", event.error);
+    recognition.onerror = () => {
       isRecognizingRef.current = false;
       setListening(false);
     };
@@ -197,51 +134,34 @@ function Home() {
         recognition.stop();
 
         if (limitReached) {
-          const limitMsg = "Your daily limit is over.";
-          setMessages((prev) => [
-            ...prev,
-            { role: "assistant", text: limitMsg },
-          ]);
-          speak(limitMsg);
+          const msg = "Your daily limit is over.";
+          setMessages(prev => [...prev, { role: "assistant", text: msg }]);
+          speak(msg);
           return;
         }
 
-        setMessages((prev) => [
-          ...prev,
-          { role: "user", text: transcript },
-        ]);
-
+        setMessages(prev => [...prev, { role: "user", text: transcript }]);
         setLoadingAI(true);
 
         const data = await getGeminiResponse(transcript);
         setLoadingAI(false);
 
-        if (data) {
-          setUserData((prev) => ({
-            ...prev,
-            replyCount: data.replyCount ?? prev.replyCount,
-            messages: [
-              ...(prev.messages || []),
-              { role: "user", text: transcript },
-              { role: "assistant", text: data.response },
-            ],
-          }));
-
+        if (data?.response) {
           let i = 0;
           setTypingText("");
 
           const interval = setInterval(() => {
             if (i < data.response.length) {
-              setTypingText((prev) => prev + data.response[i]);
+              setTypingText(prev => prev + data.response[i]);
               i++;
             } else {
               clearInterval(interval);
-              setMessages((prev) => [
+              setMessages(prev => [
                 ...prev,
-                { role: "assistant", text: data.response },
+                { role: "assistant", text: data.response }
               ]);
               setTypingText("");
-              handleCommand(data);
+              speak(data.response);
             }
           }, 20);
         }
@@ -252,7 +172,7 @@ function Home() {
 
     return () => {
       recognition.stop();
-      synth.cancel();
+      window.speechSynthesis.cancel();
     };
   }, [limitReached, userData?.assistantName]);
 
@@ -268,15 +188,6 @@ function Home() {
       flex flex-col items-center px-4 relative transition-all duration-700
       ${messages.length === 0 ? "justify-center" : "justify-start py-6"}`}
     >
-      <div className="w-full flex justify-center sm:justify-end gap-3 sticky top-0 z-50 py-4">
-        <button
-          className="px-4 py-2 bg-white text-black rounded-full text-sm font-semibold"
-          onClick={() => navigate("/customize")}
-        >
-          Customize
-        </button>
-      </div>
-
       <div className="w-[220px] h-[280px] overflow-hidden rounded-3xl shadow-2xl border border-white/20">
         <img
           src={userData?.assistantImage || "/default-avatar.png"}
@@ -317,7 +228,7 @@ function Home() {
 
       <p className="text-gray-300 text-xs mt-6">
         {!speechEnabled
-          ? "👆 Tap once anywhere to enable voice"
+          ? "👆 Tap anywhere once to enable voice"
           : listening
           ? "🎤 Listening..."
           : "💤 Waiting..."}
