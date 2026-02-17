@@ -18,9 +18,7 @@ function Home() {
   const [animatedCount, setAnimatedCount] = useState(0);
   const [limitStartTime, setLimitStartTime] = useState(null);
   const [timeLeft, setTimeLeft] = useState("");
-
-  // ✅ FIX 1: State to track if audio is unlocked for mobile
-  const [audioUnlocked, setAudioUnlocked] = useState(false);
+  const [speechEnabled, setSpeechEnabled] = useState(false);
 
   const recognitionRef = useRef(null);
   const isRecognizingRef = useRef(false);
@@ -33,27 +31,26 @@ function Home() {
   const replyCount = userData?.replyCount || 0;
   const limitReached = replyCount >= MAX_REPLIES;
 
-  // ✅ FIX 2: "Prime" the speech engine on the first user interaction
-  const unlockAudio = () => {
-    if (audioUnlocked) return;
+  // ================= UNLOCK SPEECH (ALL DEVICES) =================
+  const unlockSpeech = () => {
+    if (speechEnabled) return;
 
-    // Create a silent, 0-second utterance to tell the browser: "I have permission to speak"
     const utterance = new SpeechSynthesisUtterance(" ");
-    utterance.volume = 0;
+    utterance.volume = 0.1;
     synth.speak(utterance);
-    
-    setAudioUnlocked(true);
-    console.log("Audio Unlocked for Mobile");
+
+    setSpeechEnabled(true);
+    console.log("🔓 Speech Enabled");
   };
 
-  // Load history from DB
+  // ================= LOAD HISTORY =================
   useEffect(() => {
     if (userData?.messages) {
       setMessages(userData.messages);
     }
   }, [userData?.messages]);
 
-  // Smooth Animated Counter
+  // ================= ANIMATED COUNTER =================
   useEffect(() => {
     let start = animatedCount;
     let end = replyCount;
@@ -76,87 +73,46 @@ function Home() {
     return () => clearInterval(interval);
   }, [replyCount]);
 
-  // 12 Hour Countdown
-  useEffect(() => {
-    if (replyCount >= MAX_REPLIES) {
-      if (!limitStartTime) {
-        setLimitStartTime(Date.now());
-      }
-    } else {
-      setLimitStartTime(null);
-      setTimeLeft("");
-    }
-  }, [replyCount]);
+  // ================= SAFE SPEAK FUNCTION =================
+  const speak = (text) => {
+    if (!text || !speechEnabled) return;
 
-  useEffect(() => {
-    if (!limitStartTime) return;
+    synth.cancel();
 
-    const interval = setInterval(() => {
-      const now = Date.now();
-      const elapsed = now - limitStartTime;
-      const remaining = 12 * 60 * 60 * 1000 - elapsed;
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = "en-US";
+    utterance.rate = 1;
+    utterance.pitch = 1;
 
-      if (remaining <= 0) {
-        setTimeLeft("00h 00m 00s");
-        clearInterval(interval);
+    const loadVoice = () => {
+      const voices = synth.getVoices();
+
+      if (!voices.length) {
+        setTimeout(loadVoice, 200);
         return;
       }
 
-      const hours = Math.floor(remaining / (1000 * 60 * 60));
-      const minutes = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60));
-      const seconds = Math.floor((remaining % (1000 * 60)) / 1000);
+      utterance.voice =
+        voices.find((v) => v.lang.includes("en")) || voices[0];
 
-      setTimeLeft(
-        `${String(hours).padStart(2, "0")}h ${String(minutes).padStart(2, "0")}m ${String(seconds).padStart(2, "0")}s`
-      );
-    }, 1000);
+      utterance.onstart = () => {
+        isSpeakingRef.current = true;
+      };
 
-    return () => clearInterval(interval);
-  }, [limitStartTime]);
+      utterance.onend = () => {
+        isSpeakingRef.current = false;
+        setTimeout(startRecognition, 400);
+      };
 
-  // ================= LOGOUT =================
-  const handleLogout = async () => {
-    try {
-      setLoading(true);
-      await axios.get(`${serverURL}/api/auth/signout`, {
-        withCredentials: true,
-      });
-      toast.success("Logged out successfully 👋");
-    } catch {
-      toast.error("Session ended. Logging out...");
-    } finally {
-      setUserData(null);
-      setLoading(false);
-      navigate("/signin");
-    }
-  };
+      utterance.onerror = () => {
+        isSpeakingRef.current = false;
+        startRecognition();
+      };
 
-  // ================= SPEAK =================
-  const speak = (text) => {
-    synth.cancel(); 
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = "en-US";
-    
-    // ✅ FIX 3: Force a specific voice if available (helps on some Android Chrome versions)
-    const voices = synth.getVoices();
-    if (voices.length > 0) {
-      utterance.voice = voices.find(v => v.lang.includes("en")) || voices[0];
-    }
-
-    isSpeakingRef.current = true;
-
-    utterance.onend = () => {
-      isSpeakingRef.current = false;
-      startRecognition();
+      synth.speak(utterance);
     };
 
-    utterance.onerror = (e) => {
-      console.error("TTS Error:", e);
-      isSpeakingRef.current = false;
-      startRecognition();
-    };
-
-    synth.speak(utterance);
+    loadVoice();
   };
 
   // ================= HANDLE COMMAND =================
@@ -166,6 +122,7 @@ function Home() {
 
     setTimeout(() => {
       const query = encodeURIComponent(userInput);
+
       const routes = {
         "google-search": `https://www.google.com/search?q=${query}`,
         "youtube-search": `https://www.youtube.com/results?search_query=${query}`,
@@ -181,27 +138,32 @@ function Home() {
       if (routes[type]) {
         window.location.href = routes[type];
       }
-    }, 1500); // Slightly increased delay for mobile stability
+    }, 1200);
   };
 
-  // ================= VOICE =================
+  // ================= START RECOGNITION =================
   const startRecognition = () => {
     if (isRecognizingRef.current || isSpeakingRef.current) return;
     try {
       recognitionRef.current?.start();
-    } catch (e) {
-      console.log("Recognition start error caught");
-    }
+    } catch {}
   };
 
+  // ================= VOICE RECOGNITION =================
   useEffect(() => {
     const SpeechRecognition =
       window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SpeechRecognition) return;
+
+    if (!SpeechRecognition) {
+      console.log("Speech Recognition not supported");
+      return;
+    }
 
     const recognition = new SpeechRecognition();
     recognition.continuous = true;
+    recognition.interimResults = false;
     recognition.lang = "en-US";
+
     recognitionRef.current = recognition;
 
     recognition.onstart = () => {
@@ -212,13 +174,22 @@ function Home() {
     recognition.onend = () => {
       isRecognizingRef.current = false;
       setListening(false);
+
       if (!isSpeakingRef.current) {
         setTimeout(() => startRecognition(), 1000);
       }
     };
 
+    recognition.onerror = (event) => {
+      console.log("Recognition error:", event.error);
+      isRecognizingRef.current = false;
+      setListening(false);
+    };
+
     recognition.onresult = async (event) => {
-      const transcript = event.results[event.resultIndex][0].transcript;
+      const transcript =
+        event.results[event.resultIndex][0].transcript;
+
       const assistantTrigger =
         userData?.assistantName?.toLowerCase() || "assistant";
 
@@ -226,14 +197,22 @@ function Home() {
         recognition.stop();
 
         if (limitReached) {
-          const limitMsg = "⚠️ Your free limit is over.";
-          setMessages((prev) => [...prev, { role: "assistant", text: limitMsg }]);
+          const limitMsg = "Your daily limit is over.";
+          setMessages((prev) => [
+            ...prev,
+            { role: "assistant", text: limitMsg },
+          ]);
           speak(limitMsg);
           return;
         }
 
-        setMessages((prev) => [...prev, { role: "user", text: transcript }]);
+        setMessages((prev) => [
+          ...prev,
+          { role: "user", text: transcript },
+        ]);
+
         setLoadingAI(true);
+
         const data = await getGeminiResponse(transcript);
         setLoadingAI(false);
 
@@ -250,6 +229,7 @@ function Home() {
 
           let i = 0;
           setTypingText("");
+
           const interval = setInterval(() => {
             if (i < data.response.length) {
               setTypingText((prev) => prev + data.response[i]);
@@ -269,6 +249,7 @@ function Home() {
     };
 
     startRecognition();
+
     return () => {
       recognition.stop();
       synth.cancel();
@@ -282,66 +263,64 @@ function Home() {
 
   return (
     <div
-      onClick={unlockAudio} // ✅ THE FIX: Triggers on the very first tap/click
+      onClick={unlockSpeech}
       className={`w-full min-h-screen bg-gradient-to-t from-black to-[#090993]
       flex flex-col items-center px-4 relative transition-all duration-700
       ${messages.length === 0 ? "justify-center" : "justify-start py-6"}`}
     >
-      {/* REST OF YOUR UI REMAINS EXACTLY THE SAME */}
-      <div className="w-full flex flex-wrap justify-center sm:justify-end gap-3 sticky top-0 z-50 bg-transparent py-4 px-4 ">
-        <button className="px-4 h-[40px] bg-white text-black rounded-full text-sm font-semibold" onClick={handleLogout}>
-          {loading ? "Logging out..." : "Logout"}
-        </button>
+      <div className="w-full flex justify-center sm:justify-end gap-3 sticky top-0 z-50 py-4">
         <button
-          onClick={async () => {
-            try {
-              await axios.post(`${serverURL}/api/user/clear-history`, {}, { withCredentials: true });
-              setMessages([]);
-              setUserData((prev) => ({ ...prev, messages: [] }));
-              toast.success("History cleared");
-            } catch (e) { toast.error("Failed to clear history"); }
-          }}
-          className="px-4 h-[40px] bg-red-500 text-white rounded-full text-sm font-semibold"
+          className="px-4 py-2 bg-white text-black rounded-full text-sm font-semibold"
+          onClick={() => navigate("/customize")}
         >
-          Clear History
-        </button>
-        <button className="px-4 h-[40px] bg-white text-black rounded-full text-sm font-semibold" onClick={() => navigate("/customize")}>
           Customize
         </button>
       </div>
 
-      <div className="w-[220px] h-[280px] sm:w-[280px] sm:h-[360px] mt-4 overflow-hidden rounded-3xl shadow-2xl border border-white/20">
-        <img src={userData?.assistantImage || "/default-avatar.png"} alt="Assistant" className="h-full w-full object-cover" />
+      <div className="w-[220px] h-[280px] overflow-hidden rounded-3xl shadow-2xl border border-white/20">
+        <img
+          src={userData?.assistantImage || "/default-avatar.png"}
+          alt="Assistant"
+          className="h-full w-full object-cover"
+        />
       </div>
 
-      <h1 className="text-white text-center text-xl sm:text-2xl font-semibold mt-6">
-        I'M <span className="text-blue-300">{userData?.assistantName || "Your Assistant"}</span>
+      <h1 className="text-white text-center text-xl font-semibold mt-6">
+        I'M{" "}
+        <span className="text-blue-300">
+          {userData?.assistantName || "Your Assistant"}
+        </span>
       </h1>
 
-      <div className="w-full max-w-[500px] mt-4 px-2">
-        <div className="flex justify-between text-xs text-gray-300 mb-1">
-          <span>Daily Free Usage</span>
-          <span>{animatedCount} / {MAX_REPLIES}</span>
-        </div>
-        <div className="w-full bg-white/20 rounded-full h-2">
-          <div className={`h-2 rounded-full transition-all duration-500 ${limitReached ? "bg-red-500" : "bg-blue-400"}`} style={{ width: `${(animatedCount / MAX_REPLIES) * 100}%` }} />
-        </div>
-      </div>
-      {limitReached && <p className="text-red-400 text-xs mt-2 text-center animate-pulse">Resets in {timeLeft}</p>}
-
-      <div className="w-full max-w-2xl mt-6 bg-white/10 backdrop-blur-xl rounded-3xl p-4 flex flex-col gap-4 overflow-y-auto max-h-[350px]">
+      <div className="w-full max-w-2xl mt-6 bg-white/10 backdrop-blur-xl rounded-3xl p-4 flex flex-col gap-4 overflow-y-auto max-h-[400px]">
         {messages.map((msg, index) => (
-          <div key={index} className={`px-4 py-3 rounded-2xl shadow-md max-w-[85%] ${msg.role === "user" ? "bg-white text-black self-end" : "bg-blue-600 text-white self-start"}`}>
+          <div
+            key={index}
+            className={`px-4 py-2 rounded-2xl ${
+              msg.role === "user"
+                ? "bg-white text-black self-end"
+                : "bg-blue-600 text-white self-start"
+            }`}
+          >
             {msg.text}
           </div>
         ))}
-        {typingText && <div className="bg-blue-600 text-white px-4 py-3 rounded-2xl self-start max-w-[85%]">{typingText}</div>}
-        {loadingAI && <div className="bg-blue-600 text-white px-4 py-3 rounded-2xl animate-pulse self-start">Thinking...</div>}
+
+        {typingText && (
+          <div className="bg-blue-600 text-white px-4 py-2 rounded-2xl self-start">
+            {typingText}
+          </div>
+        )}
+
         <div ref={chatEndRef} />
       </div>
 
-      <p className="text-gray-300 text-xs sm:text-sm mt-6">
-        {listening ? "🎤 Listening..." : "💤 Waiting for wake word..."}
+      <p className="text-gray-300 text-xs mt-6">
+        {!speechEnabled
+          ? "👆 Tap once anywhere to enable voice"
+          : listening
+          ? "🎤 Listening..."
+          : "💤 Waiting..."}
       </p>
     </div>
   );
