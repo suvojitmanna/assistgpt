@@ -19,6 +19,9 @@ function Home() {
   const [limitStartTime, setLimitStartTime] = useState(null);
   const [timeLeft, setTimeLeft] = useState("");
 
+  // ✅ NEW: Tracking if speech is unlocked for mobile
+  const [speechUnlocked, setSpeechUnlocked] = useState(false);
+
   const recognitionRef = useRef(null);
   const isRecognizingRef = useRef(false);
   const isSpeakingRef = useRef(false);
@@ -30,7 +33,20 @@ function Home() {
   const replyCount = userData?.replyCount || 0;
   const limitReached = replyCount >= MAX_REPLIES;
 
-  // Load history from DB
+  // ================= MOBILE SPEECH UNLOCK =================
+  // This function runs on the first click. It plays a silent sound to "prime" the engine.
+  const unlockSpeech = () => {
+    if (speechUnlocked) return;
+    
+    const utterance = new SpeechSynthesisUtterance(" ");
+    utterance.volume = 0; // Silent
+    synth.speak(utterance);
+    
+    setSpeechUnlocked(true);
+    console.log("🔊 Speech Synthesis Unlocked for Mobile");
+  };
+
+  // ================= LOAD HISTORY =================
   useEffect(() => {
     if (userData?.messages) {
       setMessages(userData.messages);
@@ -60,15 +76,13 @@ function Home() {
     return () => clearInterval(interval);
   }, [replyCount]);
 
-  // 12 Hour Countdown (Always Starts From 12h)
+  // 12 Hour Countdown
   useEffect(() => {
     if (replyCount >= MAX_REPLIES) {
-      // If timer not already started
       if (!limitStartTime) {
         setLimitStartTime(Date.now());
       }
     } else {
-      // Reset everything if below limit
       setLimitStartTime(null);
       setTimeLeft("");
     }
@@ -93,10 +107,7 @@ function Home() {
       const seconds = Math.floor((remaining % (1000 * 60)) / 1000);
 
       setTimeLeft(
-        `${String(hours).padStart(2, "0")}h ${String(minutes).padStart(
-          2,
-          "0",
-        )}m ${String(seconds).padStart(2, "0")}s`,
+        `${String(hours).padStart(2, "0")}h ${String(minutes).padStart(2, "0")}m ${String(seconds).padStart(2, "0")}s`
       );
     }, 1000);
 
@@ -122,14 +133,27 @@ function Home() {
 
   // ================= SPEAK =================
   const speak = (text) => {
-    synth.cancel(); // Stop any current speech
+    synth.cancel(); 
     const utterance = new SpeechSynthesisUtterance(text);
+    
+    // Attempt to find a natural voice
+    const voices = synth.getVoices();
+    if (voices.length > 0) {
+      utterance.voice = voices.find(v => v.lang.includes("en-US")) || voices[0];
+    }
+    
     utterance.lang = "en-US";
+    utterance.rate = 1.0;
     isSpeakingRef.current = true;
 
     utterance.onend = () => {
       isSpeakingRef.current = false;
       startRecognition();
+    };
+
+    utterance.onerror = (event) => {
+      console.error("SpeechSynthesisUtterance error", event);
+      isSpeakingRef.current = false;
     };
 
     synth.speak(utterance);
@@ -157,7 +181,7 @@ function Home() {
       if (routes[type]) {
         window.location.href = routes[type];
       }
-    }, 1000);
+    }, 1500);
   };
 
   // ================= VOICE =================
@@ -219,7 +243,6 @@ function Home() {
         setLoadingAI(false);
 
         if (data) {
-          // Sync User Context
           setUserData((prev) => ({
             ...prev,
             replyCount: data.replyCount ?? prev.replyCount,
@@ -231,7 +254,6 @@ function Home() {
             ],
           }));
 
-          // Typewriter Effect
           let i = 0;
           setTypingText("");
           const interval = setInterval(() => {
@@ -266,16 +288,13 @@ function Home() {
 
   return (
     <div
+      onClick={unlockSpeech} // ✅ THE FIX: Triggers unlock on first tap
       className={`w-full min-h-screen bg-gradient-to-t from-black to-[#090993]
       flex flex-col items-center px-4 relative transition-all duration-700
       ${messages.length === 0 ? "justify-center" : "justify-start py-6"}`}
     >
       {/* Top Buttons */}
-      <div
-        className="w-full flex flex-wrap justify-center sm:justify-end gap-3 
-sticky top-0 z-50 bg-gradient-to-t  
-py-4 px-4 "
-      >
+      <div className="w-full flex flex-wrap justify-center sm:justify-end gap-3 sticky top-0 z-50 bg-transparent py-4 px-4">
         <button
           className="px-4 h-[40px] bg-white text-black rounded-full text-sm font-semibold hover:bg-gray-200 transition"
           onClick={handleLogout}
@@ -290,7 +309,7 @@ py-4 px-4 "
               await axios.post(
                 `${serverURL}/api/user/clear-history`,
                 {},
-                { withCredentials: true },
+                { withCredentials: true }
               );
               setMessages([]);
               setUserData((prev) => ({ ...prev, messages: [] }));
@@ -323,28 +342,21 @@ py-4 px-4 "
 
       {/* Name */}
       <h1 className="text-white text-center text-xl sm:text-2xl font-semibold mt-6">
-        I'M{" "}
-        <span className="text-blue-300">
-          {userData?.assistantName || "Your Assistant"}
-        </span>
+        I'M <span className="text-blue-300">{userData?.assistantName || "Your Assistant"}</span>
       </h1>
 
       {/* Usage Bar */}
       <div className="w-full max-w-[500px] mt-4 px-2">
         <div className="flex justify-between text-xs text-gray-300 mb-1">
           <span>Daily Free Usage</span>
-          <span>
-            {animatedCount} / {MAX_REPLIES}
-          </span>
+          <span>{animatedCount} / {MAX_REPLIES}</span>
         </div>
         <div className="w-full bg-white/20 rounded-full h-2">
           <div
             className={`h-2 rounded-full transition-all duration-500 ease-out ${
               limitReached ? "bg-red-500" : "bg-blue-400"
             }`}
-            style={{
-              width: `${(animatedCount / MAX_REPLIES) * 100}%`,
-            }}
+            style={{ width: `${(animatedCount / MAX_REPLIES) * 100}%` }}
           />
         </div>
       </div>
@@ -360,9 +372,7 @@ py-4 px-4 "
           <div
             key={index}
             className={`px-4 py-3 rounded-2xl shadow-md max-w-[85%] sm:max-w-[75%] ${
-              msg.role === "user"
-                ? "bg-white text-black self-end"
-                : "bg-blue-600 text-white self-start"
+              msg.role === "user" ? "bg-white text-black self-end" : "bg-blue-600 text-white self-start"
             }`}
           >
             {msg.text}
