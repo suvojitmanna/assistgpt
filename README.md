@@ -1,111 +1,165 @@
+🤖 AssistGPT – AI Voice Assistant (MERN + Gemini)
+
 A browser-based AI Voice Assistant built with the MERN stack and Google Gemini API.
+
 The assistant listens for a wake word, understands voice commands, responds using AI-generated speech, and performs smart browser actions — completely hands-free.
 
-🎙️ Features:
+🎤 Features
+🔊 Voice System
+
 Wake-word based voice activation
-Continuous speech recognition in the browser
+
+Continuous speech recognition (Web Speech API)
+
 AI responses powered by Google Gemini API
-Text-to-Speech replies (Bengali voice supported 🇧🇩🇮🇳)
-Smart command handling:
+
+Text-to-Speech replies
+
+Bengali voice supported (bn-IN)
+
+🌐 Smart Browser Commands
+
+The assistant can:
 
 🌍 Google Search
+
 ▶️ YouTube Search / Play
+
 📸 Instagram
+
 📘 Facebook
+
 📰 News
+
 🌦 Weather
+
 🧮 Online Calculator
 
+💼 LinkedIn Search
+
+🎨 UI & User Features
+
 Animated UI showing listening & speaking states
-User authentication system (Signup / Login / Logout)
+
+Real-time typing animation
+
+Daily usage limit system
+
+12-hour auto reset
+
+Persistent chat history (MongoDB)
+
+Manual clear history option
+
 Customizable assistant name and avatar
 
 🛠 Tech Stack
 Frontend
-React.js
-Context API
-Web Speech API (SpeechRecognition + SpeechSynthesis)
-Tailwind CSS
-React Toastify
-Backend
-Node.js
-Express.js
-MongoDB
-JWT Authentication
-AI
-Google Gemini API for natural language understanding & responses
 
-⚙️ How It Works:
-The assistant continuously listens for the user’s assistant name (wake word)
+React.js (Context API)
+
+Web Speech API (SpeechRecognition + SpeechSynthesis)
+
+Tailwind CSS
+
+React Toastify
+
+Axios
+
+Backend
+
+Node.js
+
+Express.js
+
+MongoDB + Mongoose
+
+JWT Authentication (HttpOnly cookies)
+
+bcrypt (Password hashing)
+
+Google Gemini API (AI NLP processing)
+
+⚙️ How It Works
+
+The assistant continuously listens for the user's assistant name (wake word).
+
 When detected:
-Speech recognition stops
-Voice input is sent to the Gemini API
+
+Speech recognition stops.
+
+Voice input is sent to the Gemini API.
 
 Gemini returns:
-A spoken response
-A command type (search, open app, etc.)
+
+A spoken response.
+
+A command type (search, open app, etc.).
 
 The assistant:
-Speaks the response
-Performs the requested browser action
-After speaking, listening resumes automatically
 
-🚀 Future Improvements:
-Custom wake-word training
-More system control commands
-Multilingual support
-Mobile browser optimization
+Speaks the response.
 
-👨‍💻 Author:
-Built with ❤️ using AI + Voice + MERN Stack
+Performs the requested browser action.
 
-⚙️ Installation & Setup:
-Follow these steps to run the project locally.
-1️⃣ Clone the Repository:
-git clone https://github.com/your-username/your-repo-name.git
-cd your-repo-name
+Automatically resumes listening.
 
-2️⃣ Backend Setup
-cd backend
+🔒 Security Features
+
+JWT authentication with HttpOnly cookies
+
+Password hashing with bcrypt
+
+Protected routes via middleware
+
+Server-side reply limit enforcement
+
+MongoDB-based data persistence
+
+🚀 Installation
+Clone the repository
+git clone https://github.com/suvojitmanna/assistgpt.git
+
+Backend Setup
+cd server
 npm install
-
-Create a .env file inside /backend
-
-PORT=5000
-MONGO_URI=your_mongodb_connection_string
-JWT_SECRET=your_jwt_secret
-GEMINI_API_KEY=your_gemini_api_key
-CLIENT_URL=http://localhost:5173
-
-Start Backend Server
 npm run dev
 
-3️⃣ Frontend Setup
-
-Open a new terminal:
-
-cd frontend
+Frontend Setup
+cd client
 npm install
-
-Create a .env file inside /frontend:
-VITE_SERVER_URL=http://localhost:5000
-
-Start Frontend:
 npm run dev
 
-🌐 Browser Requirements
-This project uses the Web Speech API, so use:
-✅ Google Chrome (Recommended)
-✅ Microsoft Edge
+🌱 Environment Variables
 
-⚠️ Make sure Microphone Permission is allowed
+Create a .env file in your server folder:
 
-🧑‍💻 How to Use:
-Sign up or log in
-Customize your assistant name & avatar
-Say your assistant’s name to activate
-Give a voice command like:
-“Search cats on Google”
-“Play Arijit Singh on YouTube”
-“Open Instagram”
-The assistant will respond with voice and perform the action 🎙️
+PORT=8000
+MONGO_URI=your_mongodb_connection
+JWT_SECRET=your_secret_key
+GEMINI_API_KEY=your_gemini_api_url
+CLOUDINARY_CLOUD_NAME=xxxx
+CLOUDINARY_API_KEY=xxxx
+CLOUDINARY_API_SECRET=xxxx
+
+👨‍💻 Author
+
+Suvojit Manna
+
+⭐ Support
+
+If you like this project, consider giving it a ⭐ on GitHub.
+
+💎 Why This Version Is Better
+
+Clean markdown formatting
+
+Proper section hierarchy
+
+Professional tone
+
+Clear feature breakdown
+
+Installation instructions
+
+Security explanation
