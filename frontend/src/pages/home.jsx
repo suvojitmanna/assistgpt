@@ -39,40 +39,45 @@ function Home() {
 
   // ================= SPEAK =================
   const speak = (text) => {
-    if (!text) return;
+  if (!text) return;
 
-    // Stop recognition before speaking
+  const synth = window.speechSynthesis;
+
+  // Stop recognition safely
+  if (recognitionRef.current) {
     try {
-      recognitionRef.current?.stop();
+      recognitionRef.current.onend = null;
+      recognitionRef.current.stop();
     } catch {}
+  }
 
-    synth.resume();
+  // DO NOT use cancel here
+  synth.resume();
 
-    if (synth.speaking) synth.cancel();
+  const utterance = new SpeechSynthesisUtterance(text);
+  utterance.lang = "en-US";
 
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = "en-US";
-    utterance.rate = 1;
-    utterance.pitch = 1;
-
-    utterance.onstart = () => {
-      isSpeakingRef.current = true;
-    };
-
-    utterance.onend = () => {
-      isSpeakingRef.current = false;
-
-      setTimeout(() => {
-        startRecognition();
-      }, 800);
-    };
-
-    utterance.onerror = () => {
-      isSpeakingRef.current = false;
-    };
-
-    synth.speak(utterance);
+  utterance.onstart = () => {
+    isSpeakingRef.current = true;
   };
+
+  utterance.onend = () => {
+    isSpeakingRef.current = false;
+
+    // Restart recognition AFTER speech fully finishes
+    setTimeout(() => {
+      startRecognition();
+    }, 1200);
+  };
+
+  utterance.onerror = (e) => {
+    console.log("Speech error:", e);
+    isSpeakingRef.current = false;
+  };
+
+  synth.speak(utterance);
+};
+
 
   // ================= START RECOGNITION =================
   const startRecognition = () => {
