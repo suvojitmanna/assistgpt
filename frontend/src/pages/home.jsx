@@ -43,39 +43,28 @@ function Home() {
 
   const synth = window.speechSynthesis;
 
-  // Stop recognition safely
-  if (recognitionRef.current) {
-    try {
-      recognitionRef.current.onend = null;
-      recognitionRef.current.stop();
-    } catch {}
-  }
+  // Stop recognition only
+  try {
+    recognitionRef.current?.stop();
+  } catch {}
 
-  // DO NOT use cancel here
-  synth.resume();
+  // Small delay (very important on Android)
+  setTimeout(() => {
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = "en-US";
 
-  const utterance = new SpeechSynthesisUtterance(text);
-  utterance.lang = "en-US";
+    utterance.onend = () => {
+      setTimeout(() => {
+        startRecognition();
+      }, 1500);
+    };
 
-  utterance.onstart = () => {
-    isSpeakingRef.current = true;
-  };
+    utterance.onerror = (e) => {
+      console.log("Speech error:", e);
+    };
 
-  utterance.onend = () => {
-    isSpeakingRef.current = false;
-
-    // Restart recognition AFTER speech fully finishes
-    setTimeout(() => {
-      startRecognition();
-    }, 1200);
-  };
-
-  utterance.onerror = (e) => {
-    console.log("Speech error:", e);
-    isSpeakingRef.current = false;
-  };
-
-  synth.speak(utterance);
+    synth.speak(utterance);
+  }, 400); // Android needs delay
 };
 
 
@@ -172,7 +161,6 @@ function Home() {
 
     return () => {
       recognition.stop();
-      synth.cancel();
     };
   }, [limitReached, userData?.assistantName]);
 
