@@ -20,7 +20,6 @@ const UserContextProvider = ({ children }) => {
         withCredentials: true,
       });
 
-      // Backend now returns user directly
       setUserData(result.data);
     } catch (error) {
       setUserData(null);
@@ -36,7 +35,7 @@ const UserContextProvider = ({ children }) => {
         { command },
         {
           withCredentials: true,
-        },
+        }
       );
       return result.data;
     } catch (error) {
@@ -72,4 +71,3 @@ const UserContextProvider = ({ children }) => {
 };
 
 export default UserContextProvider;
-
