@@ -38,8 +38,8 @@ export const signUp = async (req, res) => {
     res.cookie("token", token, {
       httpOnly: true,
       maxAge: 7 * 24 * 60 * 60 * 1000,
-      sameSite: "lax",
-      secure: false,
+      sameSite: "none",     
+      secure: true,         
       path: "/",
     });
 
@@ -91,8 +91,8 @@ export const signIn = async (req, res) => {
     res.cookie("token", token, {
       httpOnly: true,
       maxAge: 7 * 24 * 60 * 60 * 1000,
-      sameSite: "lax",
-      secure: false, 
+      sameSite: "none",  
+      secure: true,       
       path: "/",
     });
 
@@ -120,14 +120,15 @@ export const signIn = async (req, res) => {
 export const signOut = (req, res) => {
   res.clearCookie("token", {
     httpOnly: true,
-    sameSite: "lax",
-    secure: false,
+    sameSite: "none",
+    secure: true,
     path: "/",
   });
 
   res.status(200).json({ message: "Sign out successful" });
 };
 
+/* ================= CLEAR CHAT HISTORY ================= */
 export const clearChatHistory = async (req, res) => {
   try {
     const user = await User.findById(req.userId);
