@@ -1,5 +1,5 @@
 import { useContext } from "react";
-import { UserDataContext } from "../context/userContext";
+import { UserDataContext } from "../context/UserContext";
 import { toast } from "react-toastify";
 
 const Card = ({ image }) => {
