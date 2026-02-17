@@ -1,8 +1,8 @@
 import { useContext } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { UserDataContext } from "./context/UserContext";
-import { ToastContainer } from "react-toastify"; // ✅ ADD
-import "react-toastify/dist/ReactToastify.css"; // ✅ ADD
+import { ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 import Home from "./pages/home";
 import Signin from "./pages/signin";
@@ -17,7 +17,7 @@ const App = () => {
 
   return (
     <>
-      {/* ✅ Toast Container */}
+      {/* Toast Container */}
       <ToastContainer position="top-right" autoClose={3000} theme="dark" />
 
       <Routes>

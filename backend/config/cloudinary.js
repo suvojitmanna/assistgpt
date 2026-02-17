@@ -9,10 +9,10 @@ const uploadonCloudinary = async (filpath) => {
   });
   try {
     const uploadResult = await cloudinary.uploader.upload(filpath);
-    fs.unlinkSync(filpath); // Delete the local file after upload
+    fs.unlinkSync(filpath); 
     return uploadResult.secure_url;
   } catch (error) {
-    fs.unlinkSync(filpath); // Delete the local file in case of error
+    fs.unlinkSync(filpath); 
     return res.status(500).json({ message: "Cloudinary upload failed" });
   }
 };

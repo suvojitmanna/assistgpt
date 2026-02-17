@@ -10,7 +10,9 @@ const userSchema = new mongoose.Schema(
       type: String,
       required: true,
       unique: true,
+      index: true,
     },
+
     password: {
       type: String,
       required: true,
@@ -21,9 +23,30 @@ const userSchema = new mongoose.Schema(
     assistantImage: {
       type: String,
     },
-    history: [{ type: String }],
+    replyCount: {
+      type: Number,
+      default: 0,
+    },
+
+    lastReset: {
+      type: Date,
+      default: Date.now,
+    },
+    messages: [
+      {
+        role: {
+          type: String,
+          enum: ["user", "assistant"],
+        },
+        text: String,
+        createdAt: {
+          type: Date,
+          default: Date.now,
+        },
+      },
+    ],
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 const User = mongoose.model("User", userSchema);

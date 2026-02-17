@@ -2,118 +2,156 @@ import User from "../models/user.model.js";
 import uploadOnCloudinary from "../config/cloudinary.js";
 import { geminiresponse } from "../gemini.js";
 import moment from "moment";
-import { response } from "express";
 
-// GET CURRENT USER
+// ================= GET CURRENT USER =================
 export const getCurrentUser = async (req, res) => {
   try {
-    const userId = req.userId;
+    const user = await User.findById(req.userId).select("-password");
 
-    const user = await User.findById(userId).select("-password");
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
 
-    // ✅ Send user directly (not { user: user })
     res.status(200).json(user);
-
   } catch (error) {
     res.status(500).json({ message: "Server error" });
   }
 };
 
-// UPDATE ASSISTANT
+// ================= UPDATE ASSISTANT =================
 export const updateAssistant = async (req, res) => {
   try {
     const { assistantName, imageUrl } = req.body;
     let assistantImage;
 
-    // If user uploaded a file
     if (req.file) {
       const uploadResult = await uploadOnCloudinary(req.file.path);
-      assistantImage = uploadResult.secure_url; // Cloudinary image URL
-    } 
-    // If user selected preset image
-    else if (imageUrl) {
+      assistantImage = uploadResult.secure_url;
+    } else if (imageUrl) {
       assistantImage = imageUrl;
     }
 
     const updatedUser = await User.findByIdAndUpdate(
       req.userId,
       { assistantName, assistantImage },
-      { new: true } // 🔥 VERY IMPORTANT
+      { new: true },
     ).select("-password");
 
-    // ✅ Return updated user directly
     return res.status(200).json(updatedUser);
-
   } catch (error) {
     console.error("Update assistant error:", error);
     res.status(500).json({ message: "Server error" });
   }
 };
 
-
+// ================= ASK TO ASSISTANT =================
 export const asksToAssistant = async (req, res) => {
   try {
     const { command } = req.body;
-    const user = await User.findById(req.userId);
-    const userName = "suvojit manna" || "Your Assistant";
-    const assistantName = user.assistantName || "AssistGPT";
-    const result = await geminiresponse(command, assistantName, userName);
-    
-    const jsonNatch = result.match(/{[\s\S]*}/);
-    if (!jsonNatch) {
-      return res.status(400).json({ message: "Sorry i couldn't understand that." });
-    }
-    const geminiResponse = JSON.parse(jsonNatch[0]);
-    const type = geminiResponse.type;
 
-    switch (type) {
-      case "get-date": 
-        return res.json({
-          type,
-          userInput: geminiResponse.userInput,
-          response: `Current date is ${moment().format("YYYY-MM-DD")}`,
-        })                     
-      case "get-time": 
-        return res.json({
-          type,
-          userInput: geminiResponse.userInput,
-          response: `Current time is ${moment().format("HH:mm:ss")}`,
-        })                     
-      case "get-day": 
-        return res.json({
-          type,
-          userInput: geminiResponse.userInput,
-          response: `Today is ${moment().format("dddd")}`,
-        })                     
-      case "get-month": 
-        return res.json({
-          type,
-          userInput: geminiResponse.userInput,
-          response: `Current month is ${moment().format("MMMM")}`,
-        });
-        case 'google-search':
-      case 'youtube-search':
-      case 'youtube-play':
-      case 'instagram-open':
-      case 'facebook-open':
-      case 'weather-show':
-      case 'general':
-      case 'calculator-open':
-      case 'get-news':
-        return res.json({
-          type,
-          userInput: geminiResponse.userInput,
-          response: geminiResponse.response,
-        });
-      default:
-        return res.status(400).json({ message: "Sorry i couldn't understand that." });
-    }                  
-  } 
-  catch (error) {
+    if (!command || command.trim() === "") {
+      return res.status(400).json({
+        message: "Command is required",
+      });
+    }
+
+    const user = await User.findById(req.userId);
+    if (!user) {
+      return res.status(404).json({
+        message: "User not found",
+      });
+    }
+
+    const MAX_REPLIES = 10;
+
+    // 12 hour auto reset (ONLY resets replyCount)
+    const now = new Date();
+    const hoursPassed =
+      (now.getTime() - new Date(user.lastReset).getTime()) / (1000 * 60 * 60);
+
+    if (hoursPassed >= 12) {
+      user.replyCount = 0;
+      user.lastReset = now;
+      await user.save();
+    }
+
+    // Limit check
+    if (user.replyCount >= MAX_REPLIES) {
+      return res.status(403).json({
+        message:
+          "Your free limit is over. Please try next working day. Upgrade plan not available.",
+        limitReached: true,
+      });
+    }
+
+    const userName = user.name || "User";
+    const assistantName = user.assistantName || "AssistGPT";
+
+    const result = await geminiresponse(command, assistantName, userName);
+
+    if (!result) {
+      return res.status(400).json({
+        message: "No response from assistant",
+      });
+    }
+
+    const jsonMatch = result.match(/{[\s\S]*}/);
+
+    if (!jsonMatch) {
+      return res.status(400).json({
+        message: "Invalid AI response",
+      });
+    }
+
+    const geminiResponse = JSON.parse(jsonMatch[0]);
+    const { type, userInput, response } = geminiResponse;
+
+    // Save messages
+    user.messages.push({
+      role: "user",
+      text: command,
+    });
+
+    user.messages.push({
+      role: "assistant",
+      text: response,
+    });
+
+    // Limit message history to last 100
+    if (user.messages.length > 100) {
+      user.messages = user.messages.slice(-100);
+    }
+
+    // Increase reply count
+    user.replyCount += 1;
+
+    await user.save();
+
+    return res.json({
+      type,
+      userInput,
+      response,
+      replyCount: user.replyCount,
+      lastReset: user.lastReset,
+    });
+  } catch (error) {
     console.error("Ask assistant error:", error);
+    return res.status(500).json({
+      message: "Server error",
+    });
+  }
+};
+
+// ================= CLEAR CHAT HISTORY =================
+export const clearChatHistory = async (req, res) => {
+  try {
+    const user = await User.findById(req.userId);
+
+    user.messages = []; // only clear messages
+    await user.save();
+
+    res.json({ message: "History cleared successfully" });
+  } catch (error) {
     res.status(500).json({ message: "Server error" });
   }
-}
+};

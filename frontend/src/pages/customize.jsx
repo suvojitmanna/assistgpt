@@ -39,7 +39,7 @@ function Customize() {
 
       toast.success("Image uploaded successfully ✨", { autoClose: 1500 });
 
-      event.target.value = ""; // allow re-uploading same file
+      event.target.value = ""; 
     }
   };
 

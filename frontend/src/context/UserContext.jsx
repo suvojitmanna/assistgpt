@@ -10,19 +10,18 @@ const UserContext = ({ children }) => {
   const [authLoading, setAuthLoading] = useState(true);
 
   // Assistant image states
-  const [frontendImage, setFrontendImage] = useState(null); // preview image
-  const [backendImage, setBackendImage] = useState(null);   // uploaded file
-  const [selectedImage, setSelectedImage] = useState(null); // chosen preset image
+  const [frontendImage, setFrontendImage] = useState(null);
+  const [backendImage, setBackendImage] = useState(null); 
+  const [selectedImage, setSelectedImage] = useState(null);
 
   const handleCurrentUser = async () => {
     try {
       const result = await axios.get(`${serverURL}/api/user/current`, {
-        withCredentials: true, // 🔥 needed to send cookies
+        withCredentials: true,
       });
 
-      // ✅ Backend now returns user directly
+      // Backend now returns user directly
       setUserData(result.data);
-
     } catch (error) {
       setUserData(null);
     } finally {
@@ -32,9 +31,13 @@ const UserContext = ({ children }) => {
 
   const getGeminiResponse = async (command) => {
     try {
-      const result = await axios.post(`${serverURL}/api/user/asktoassistant`, { command }, {
-        withCredentials: true,
-      });
+      const result = await axios.post(
+        `${serverURL}/api/user/asktoassistant`,
+        { command },
+        {
+          withCredentials: true,
+        },
+      );
       return result.data;
     } catch (error) {
       console.error("Error fetching Gemini response:", error);
@@ -43,7 +46,7 @@ const UserContext = ({ children }) => {
   };
 
   useEffect(() => {
-    handleCurrentUser(); // runs on app load / refresh
+    handleCurrentUser(); 
   }, []);
 
   return (

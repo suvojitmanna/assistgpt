@@ -15,7 +15,9 @@ export const signUp = async (req, res) => {
     email = email.toLowerCase();
 
     if (password.length < 6) {
-      return res.status(400).json({ message: "Password must be at least 6 characters" });
+      return res
+        .status(400)
+        .json({ message: "Password must be at least 6 characters" });
     }
 
     const existEmail = await User.findOne({ email });
@@ -36,8 +38,8 @@ export const signUp = async (req, res) => {
     res.cookie("token", token, {
       httpOnly: true,
       maxAge: 7 * 24 * 60 * 60 * 1000,
-      sameSite: "lax",   // ✅ required for localhost
-      secure: false,     // ✅ must be false on localhost
+      sameSite: "lax",
+      secure: false,
       path: "/",
     });
 
@@ -89,8 +91,8 @@ export const signIn = async (req, res) => {
     res.cookie("token", token, {
       httpOnly: true,
       maxAge: 7 * 24 * 60 * 60 * 1000,
-      sameSite: "lax",   // ✅ required for localhost
-      secure: false,     // ✅ must be false on localhost
+      sameSite: "lax",
+      secure: false, 
       path: "/",
     });
 
@@ -100,6 +102,10 @@ export const signIn = async (req, res) => {
         id: user._id,
         name: user.name,
         email: user.email,
+        assistantName: user.assistantName,
+        assistantImage: user.assistantImage,
+        replyCount: user.replyCount,
+        messages: user.messages,
       },
     });
   } catch (error) {
@@ -120,4 +126,21 @@ export const signOut = (req, res) => {
   });
 
   res.status(200).json({ message: "Sign out successful" });
+};
+
+export const clearChatHistory = async (req, res) => {
+  try {
+    const user = await User.findById(req.userId);
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    user.messages = [];
+    await user.save();
+
+    res.json({ message: "History cleared successfully" });
+  } catch (error) {
+    res.status(500).json({ message: "Server error" });
+  }
 };

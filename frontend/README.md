@@ -1,16 +1,111 @@
-# React + Vite
+A browser-based AI Voice Assistant built with the MERN stack and Google Gemini API.
+The assistant listens for a wake word, understands voice commands, responds using AI-generated speech, and performs smart browser actions — completely hands-free.
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+🎙️ Features:
+Wake-word based voice activation
+Continuous speech recognition in the browser
+AI responses powered by Google Gemini API
+Text-to-Speech replies (Bengali voice supported 🇧🇩🇮🇳)
+Smart command handling:
 
-Currently, two official plugins are available:
+🌍 Google Search
+▶️ YouTube Search / Play
+📸 Instagram
+📘 Facebook
+📰 News
+🌦 Weather
+🧮 Online Calculator
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+Animated UI showing listening & speaking states
+User authentication system (Signup / Login / Logout)
+Customizable assistant name and avatar
 
-## React Compiler
+🛠 Tech Stack
+Frontend
+React.js
+Context API
+Web Speech API (SpeechRecognition + SpeechSynthesis)
+Tailwind CSS
+React Toastify
+Backend
+Node.js
+Express.js
+MongoDB
+JWT Authentication
+AI
+Google Gemini API for natural language understanding & responses
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+⚙️ How It Works:
+The assistant continuously listens for the user’s assistant name (wake word)
+When detected:
+Speech recognition stops
+Voice input is sent to the Gemini API
 
-## Expanding the ESLint configuration
+Gemini returns:
+A spoken response
+A command type (search, open app, etc.)
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+The assistant:
+Speaks the response
+Performs the requested browser action
+After speaking, listening resumes automatically
+
+🚀 Future Improvements:
+Custom wake-word training
+More system control commands
+Multilingual support
+Mobile browser optimization
+
+👨‍💻 Author:
+Built with ❤️ using AI + Voice + MERN Stack
+
+⚙️ Installation & Setup:
+Follow these steps to run the project locally.
+1️⃣ Clone the Repository:
+git clone https://github.com/your-username/your-repo-name.git
+cd your-repo-name
+
+2️⃣ Backend Setup
+cd backend
+npm install
+
+Create a .env file inside /backend
+
+PORT=5000
+MONGO_URI=your_mongodb_connection_string
+JWT_SECRET=your_jwt_secret
+GEMINI_API_KEY=your_gemini_api_key
+CLIENT_URL=http://localhost:5173
+
+Start Backend Server
+npm run dev
+
+3️⃣ Frontend Setup
+
+Open a new terminal:
+
+cd frontend
+npm install
+
+Create a .env file inside /frontend:
+VITE_SERVER_URL=http://localhost:5000
+
+Start Frontend:
+npm run dev
+
+🌐 Browser Requirements
+This project uses the Web Speech API, so use:
+✅ Google Chrome (Recommended)
+✅ Microsoft Edge
+
+⚠️ Make sure Microphone Permission is allowed
+
+🧑‍💻 How to Use:
+Sign up or log in
+Customize your assistant name & avatar
+Say your assistant’s name to activate
+Give a voice command like:
+“Search cats on Google”
+“Play Arijit Singh on YouTube”
+“Open Instagram”
+The assistant will respond with voice and perform the action 🎙️

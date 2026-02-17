@@ -2,7 +2,7 @@ import React, { useContext, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import backgroundImage from "../assets/authBg.png";
 import { IoEye, IoEyeOff } from "react-icons/io5";
-import { UserDataContext } from "../context/userContext";
+import { UserDataContext } from "../context/UserContext";
 import axios from "axios";
 import { toast } from "react-toastify";
 
