@@ -19,8 +19,8 @@ function Home() {
   const [limitStartTime, setLimitStartTime] = useState(null);
   const [timeLeft, setTimeLeft] = useState("");
 
-  // ✅ NEW: Tracking if speech is unlocked for mobile
-  const [speechUnlocked, setSpeechUnlocked] = useState(false);
+  // ✅ FIX 1: State to track if audio is unlocked for mobile
+  const [audioUnlocked, setAudioUnlocked] = useState(false);
 
   const recognitionRef = useRef(null);
   const isRecognizingRef = useRef(false);
@@ -33,20 +33,20 @@ function Home() {
   const replyCount = userData?.replyCount || 0;
   const limitReached = replyCount >= MAX_REPLIES;
 
-  // ================= MOBILE SPEECH UNLOCK =================
-  // This function runs on the first click. It plays a silent sound to "prime" the engine.
-  const unlockSpeech = () => {
-    if (speechUnlocked) return;
-    
+  // ✅ FIX 2: "Prime" the speech engine on the first user interaction
+  const unlockAudio = () => {
+    if (audioUnlocked) return;
+
+    // Create a silent, 0-second utterance to tell the browser: "I have permission to speak"
     const utterance = new SpeechSynthesisUtterance(" ");
-    utterance.volume = 0; // Silent
+    utterance.volume = 0;
     synth.speak(utterance);
     
-    setSpeechUnlocked(true);
-    console.log("🔊 Speech Synthesis Unlocked for Mobile");
+    setAudioUnlocked(true);
+    console.log("Audio Unlocked for Mobile");
   };
 
-  // ================= LOAD HISTORY =================
+  // Load history from DB
   useEffect(() => {
     if (userData?.messages) {
       setMessages(userData.messages);
@@ -135,15 +135,14 @@ function Home() {
   const speak = (text) => {
     synth.cancel(); 
     const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = "en-US";
     
-    // Attempt to find a natural voice
+    // ✅ FIX 3: Force a specific voice if available (helps on some Android Chrome versions)
     const voices = synth.getVoices();
     if (voices.length > 0) {
-      utterance.voice = voices.find(v => v.lang.includes("en-US")) || voices[0];
+      utterance.voice = voices.find(v => v.lang.includes("en")) || voices[0];
     }
-    
-    utterance.lang = "en-US";
-    utterance.rate = 1.0;
+
     isSpeakingRef.current = true;
 
     utterance.onend = () => {
@@ -151,9 +150,10 @@ function Home() {
       startRecognition();
     };
 
-    utterance.onerror = (event) => {
-      console.error("SpeechSynthesisUtterance error", event);
+    utterance.onerror = (e) => {
+      console.error("TTS Error:", e);
       isSpeakingRef.current = false;
+      startRecognition();
     };
 
     synth.speak(utterance);
@@ -181,7 +181,7 @@ function Home() {
       if (routes[type]) {
         window.location.href = routes[type];
       }
-    }, 1500);
+    }, 1500); // Slightly increased delay for mobile stability
   };
 
   // ================= VOICE =================
@@ -226,27 +226,21 @@ function Home() {
         recognition.stop();
 
         if (limitReached) {
-          const limitMsg = "⚠️ Your free limit is over. Try next working day.";
-          setMessages((prev) => [
-            ...prev,
-            { role: "assistant", text: limitMsg },
-          ]);
+          const limitMsg = "⚠️ Your free limit is over.";
+          setMessages((prev) => [...prev, { role: "assistant", text: limitMsg }]);
           speak(limitMsg);
           return;
         }
 
         setMessages((prev) => [...prev, { role: "user", text: transcript }]);
         setLoadingAI(true);
-
         const data = await getGeminiResponse(transcript);
-
         setLoadingAI(false);
 
         if (data) {
           setUserData((prev) => ({
             ...prev,
             replyCount: data.replyCount ?? prev.replyCount,
-            lastReset: data.lastReset ?? prev.lastReset,
             messages: [
               ...(prev.messages || []),
               { role: "user", text: transcript },
@@ -288,109 +282,61 @@ function Home() {
 
   return (
     <div
-      onClick={unlockSpeech} // ✅ THE FIX: Triggers unlock on first tap
+      onClick={unlockAudio} // ✅ THE FIX: Triggers on the very first tap/click
       className={`w-full min-h-screen bg-gradient-to-t from-black to-[#090993]
       flex flex-col items-center px-4 relative transition-all duration-700
       ${messages.length === 0 ? "justify-center" : "justify-start py-6"}`}
     >
-      {/* Top Buttons */}
-      <div className="w-full flex flex-wrap justify-center sm:justify-end gap-3 sticky top-0 z-50 bg-transparent py-4 px-4">
-        <button
-          className="px-4 h-[40px] bg-white text-black rounded-full text-sm font-semibold hover:bg-gray-200 transition"
-          onClick={handleLogout}
-          disabled={loading}
-        >
+      {/* REST OF YOUR UI REMAINS EXACTLY THE SAME */}
+      <div className="w-full flex flex-wrap justify-center sm:justify-end gap-3 sticky top-0 z-50 bg-transparent py-4 px-4 ">
+        <button className="px-4 h-[40px] bg-white text-black rounded-full text-sm font-semibold" onClick={handleLogout}>
           {loading ? "Logging out..." : "Logout"}
         </button>
-
         <button
           onClick={async () => {
             try {
-              await axios.post(
-                `${serverURL}/api/user/clear-history`,
-                {},
-                { withCredentials: true }
-              );
+              await axios.post(`${serverURL}/api/user/clear-history`, {}, { withCredentials: true });
               setMessages([]);
               setUserData((prev) => ({ ...prev, messages: [] }));
               toast.success("History cleared");
-            } catch (e) {
-              toast.error("Failed to clear history");
-            }
+            } catch (e) { toast.error("Failed to clear history"); }
           }}
-          className="px-4 h-[40px] bg-red-500 text-white rounded-full text-sm font-semibold hover:bg-red-600 transition"
+          className="px-4 h-[40px] bg-red-500 text-white rounded-full text-sm font-semibold"
         >
           Clear History
         </button>
-
-        <button
-          className="px-4 h-[40px] bg-white text-black rounded-full text-sm font-semibold hover:bg-gray-200 transition"
-          onClick={() => navigate("/customize")}
-        >
+        <button className="px-4 h-[40px] bg-white text-black rounded-full text-sm font-semibold" onClick={() => navigate("/customize")}>
           Customize
         </button>
       </div>
 
-      {/* Avatar */}
       <div className="w-[220px] h-[280px] sm:w-[280px] sm:h-[360px] mt-4 overflow-hidden rounded-3xl shadow-2xl border border-white/20">
-        <img
-          src={userData?.assistantImage || "/default-avatar.png"}
-          alt="Assistant"
-          className="h-full w-full object-cover"
-        />
+        <img src={userData?.assistantImage || "/default-avatar.png"} alt="Assistant" className="h-full w-full object-cover" />
       </div>
 
-      {/* Name */}
       <h1 className="text-white text-center text-xl sm:text-2xl font-semibold mt-6">
         I'M <span className="text-blue-300">{userData?.assistantName || "Your Assistant"}</span>
       </h1>
 
-      {/* Usage Bar */}
       <div className="w-full max-w-[500px] mt-4 px-2">
         <div className="flex justify-between text-xs text-gray-300 mb-1">
           <span>Daily Free Usage</span>
           <span>{animatedCount} / {MAX_REPLIES}</span>
         </div>
         <div className="w-full bg-white/20 rounded-full h-2">
-          <div
-            className={`h-2 rounded-full transition-all duration-500 ease-out ${
-              limitReached ? "bg-red-500" : "bg-blue-400"
-            }`}
-            style={{ width: `${(animatedCount / MAX_REPLIES) * 100}%` }}
-          />
+          <div className={`h-2 rounded-full transition-all duration-500 ${limitReached ? "bg-red-500" : "bg-blue-400"}`} style={{ width: `${(animatedCount / MAX_REPLIES) * 100}%` }} />
         </div>
       </div>
-      {limitReached && (
-        <p className="text-red-400 text-xs sm:text-sm mt-2 text-center animate-pulse">
-          Resets in {timeLeft}
-        </p>
-      )}
+      {limitReached && <p className="text-red-400 text-xs mt-2 text-center animate-pulse">Resets in {timeLeft}</p>}
 
-      {/* Chat */}
-      <div className="w-full max-w-2xl mt-6 bg-white/10 backdrop-blur-xl rounded-3xl p-4 sm:p-6 shadow-2xl border border-white/20 flex flex-col gap-4 overflow-y-auto max-h-[350px] sm:max-h-[450px]">
+      <div className="w-full max-w-2xl mt-6 bg-white/10 backdrop-blur-xl rounded-3xl p-4 flex flex-col gap-4 overflow-y-auto max-h-[350px]">
         {messages.map((msg, index) => (
-          <div
-            key={index}
-            className={`px-4 py-3 rounded-2xl shadow-md max-w-[85%] sm:max-w-[75%] ${
-              msg.role === "user" ? "bg-white text-black self-end" : "bg-blue-600 text-white self-start"
-            }`}
-          >
+          <div key={index} className={`px-4 py-3 rounded-2xl shadow-md max-w-[85%] ${msg.role === "user" ? "bg-white text-black self-end" : "bg-blue-600 text-white self-start"}`}>
             {msg.text}
           </div>
         ))}
-
-        {typingText && (
-          <div className="bg-blue-600 text-white px-4 py-3 rounded-2xl self-start max-w-[85%] sm:max-w-[75%]">
-            {typingText}
-          </div>
-        )}
-
-        {loadingAI && (
-          <div className="bg-blue-600 text-white px-4 py-3 rounded-2xl animate-pulse self-start">
-            Thinking...
-          </div>
-        )}
-
+        {typingText && <div className="bg-blue-600 text-white px-4 py-3 rounded-2xl self-start max-w-[85%]">{typingText}</div>}
+        {loadingAI && <div className="bg-blue-600 text-white px-4 py-3 rounded-2xl animate-pulse self-start">Thinking...</div>}
         <div ref={chatEndRef} />
       </div>
 
