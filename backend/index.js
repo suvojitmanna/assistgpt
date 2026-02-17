@@ -19,18 +19,18 @@ const allowedOrigins = [
 ];
 
 // ✅ CORS configuration
+const app = express();
+
 app.use(
   cors({
-    origin: function (origin, callback) {
-      if (!origin || allowedOrigins.includes(origin)) {
-        callback(null, true);
-      } else {
-        callback(new Error("Not allowed by CORS"));
-      }
-    },
+    origin: process.env.CLIENT_URL,
     credentials: true,
   })
 );
+
+app.use(express.json());
+app.use(cookieParser());
+
 
 // ✅ Handle preflight
 app.options("*", cors());
