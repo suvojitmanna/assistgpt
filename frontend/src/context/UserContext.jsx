@@ -3,7 +3,7 @@ import { createContext, useEffect, useState } from "react";
 
 export const UserDataContext = createContext();
 
-const UserContext = ({ children }) => {
+const UserContextProvider = ({ children }) => {
   const serverURL = import.meta.env.VITE_SERVER_URL;
 
   const [userData, setUserData] = useState(null);
@@ -11,7 +11,7 @@ const UserContext = ({ children }) => {
 
   // Assistant image states
   const [frontendImage, setFrontendImage] = useState(null);
-  const [backendImage, setBackendImage] = useState(null); 
+  const [backendImage, setBackendImage] = useState(null);
   const [selectedImage, setSelectedImage] = useState(null);
 
   const handleCurrentUser = async () => {
@@ -46,7 +46,7 @@ const UserContext = ({ children }) => {
   };
 
   useEffect(() => {
-    handleCurrentUser(); 
+    handleCurrentUser();
   }, []);
 
   return (
@@ -71,4 +71,5 @@ const UserContext = ({ children }) => {
   );
 };
 
-export default UserContext;
+export default UserContextProvider;
+

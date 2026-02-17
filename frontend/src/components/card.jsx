@@ -1,14 +1,10 @@
 import { useContext } from "react";
-import { UserDataContext } from "../context/UserContext";
+import { UserDataContext } from "../context/userContext";
 import { toast } from "react-toastify";
 
 const Card = ({ image }) => {
-  const {
-    setBackendImage,
-    setFrontendImage,
-    selectedImage,
-    setSelectedImage,
-  } = useContext(UserDataContext);
+  const { setBackendImage, setFrontendImage, selectedImage, setSelectedImage } =
+    useContext(UserDataContext);
 
   const handleSelect = () => {
     setSelectedImage(image);

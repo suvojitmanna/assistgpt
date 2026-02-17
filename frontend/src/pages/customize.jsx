@@ -10,7 +10,7 @@ import image7 from "../assets/image7.jpeg";
 import image8 from "../assets/authBg.png";
 import { MdOutlineFileUpload } from "react-icons/md";
 import { RiImageAddLine } from "react-icons/ri";
-import { UserDataContext } from "../context/UserContext";
+import { UserDataContext } from "../context/userContext";
 import { IoMdArrowRoundBack } from "react-icons/io";
 import { toast } from "react-toastify";
 
@@ -39,7 +39,7 @@ function Customize() {
 
       toast.success("Image uploaded successfully ✨", { autoClose: 1500 });
 
-      event.target.value = ""; 
+      event.target.value = "";
     }
   };
 

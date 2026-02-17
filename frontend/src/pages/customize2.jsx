@@ -1,6 +1,6 @@
 import { useContext, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { UserDataContext } from "../context/UserContext";
+import { UserDataContext } from "../context/userContext";
 import axios from "axios";
 import { IoMdArrowRoundBack } from "react-icons/io";
 import { toast } from "react-toastify";
@@ -10,7 +10,7 @@ const Customize2 = () => {
     useContext(UserDataContext);
 
   const [assistantName, setAssistantName] = useState(
-    userData?.assistantName || ""
+    userData?.assistantName || "",
   );
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
@@ -36,7 +36,7 @@ const Customize2 = () => {
       const result = await axios.post(
         `${serverURL}/api/user/update`,
         formData,
-        { withCredentials: true }
+        { withCredentials: true },
       );
 
       setUserData(result.data);
