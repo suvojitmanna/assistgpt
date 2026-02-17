@@ -109,3 +109,92 @@ Give a voice command like:
 “Play Arijit Singh on YouTube”
 “Open Instagram”
 The assistant will respond with voice and perform the action 🎙️
+
+<br/>
+File Strcture <br/>
+server/
+├── controllers/
+├── models/
+├── routes/
+├── middlewares/
+├── config/
+
+client/
+├── src/
+├── components/
+├── pages/
+├── context/
+
+<br/>
+
+## ⚙️ Environment Variables
+Create `.env` file in server:
+
+<br/>
+
+PORT=8000
+MONGO_URI=your_mongodb_connection
+JWT_SECRET=your_secret_key
+GEMINI_API_KEY=your_gemini_api_url
+CLOUDINARY_CLOUD_NAME=xxxx
+CLOUDINARY_API_KEY=xxxx
+CLOUDINARY_API_SECRET=xxxx
+
+<br/>
+
+## 🚀 Installation
+
+### 1️⃣ Clone Repo
+git clone https://github.com/suvojitmanna/assistgpt.git
+
+### 2️⃣ Backend Setup
+
+<br/>
+cd server
+npm install
+npm run dev
+
+
+---
+
+### 3️⃣ Frontend Setup
+
+
+
+cd client
+npm install
+npm run dev
+
+
+---
+
+## 🔒 Security Features
+
+- HttpOnly JWT Cookies
+- Password Hashing (bcrypt)
+- Protected API Routes
+- Server-Side Limit Enforcement
+- MongoDB Data Persistence
+
+---
+
+## 📈 Future Improvements
+
+- Stripe Premium Plan
+- Multi-Chat Threads
+- Admin Dashboard
+- Analytics Tracking
+- Google OAuth Login
+
+---
+
+## 🧑‍💻 Author
+
+**Suvojit Manna**
+
+---
+
+## ⭐ Support
+
+If you like this project, give it a ⭐ on GitHub!
+
