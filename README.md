@@ -62,7 +62,7 @@ Built with ❤️ using AI + Voice + MERN Stack
 ⚙️ Installation & Setup:
 Follow these steps to run the project locally.
 1️⃣ Clone the Repository:
-git clone https://github.com/your-username/your-repo-name.git
+git clone https://github.com/suvojitmanna/assistgpt.git
 cd your-repo-name
 
 2️⃣ Backend Setup
