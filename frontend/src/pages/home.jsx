@@ -306,14 +306,14 @@ function Home() {
 
       if (!isFinal) return;
 
-      // 🟢 STEP 1: Wake word detection
+      // STEP 1: Wake word detection
       if (!isActivatedRef.current && transcript.includes(assistantTrigger)) {
         isActivatedRef.current = true;
         speak("Yes");
         return;
       }
 
-      // 🟢 STEP 2: After wake word → treat next speech as command
+      // STEP 2: After wake word → treat next speech as command
       if (isActivatedRef.current && !processingRef.current) {
         processingRef.current = true;
         isActivatedRef.current = false;
@@ -387,7 +387,7 @@ function Home() {
       flex flex-col items-center  relative transition-all duration-700
       ${messages.length === 0 ? "justify-center" : "justify-start py-6"}`}
     >
-      {/* 🔥 STICKY HEADER (BOX + BUTTONS) */}
+      {/* STICKY HEADER (BOX + BUTTONS) */}
       <div className="w-full sticky top-0  bg-gradient-to-b ">
         <div className="max-w-9xl mx-auto flex items-start justify-between px-6 py-6">
           {/* LEFT SIDE - TIME BOX */}
@@ -405,7 +405,7 @@ function Home() {
             >
               {limitReached
                 ? "⚠ Daily Free Limit Reached"
-                : "🚀 Enjoy your free usage today!"}
+                : "🚀 Enjoy your Assistant!"}
             </div>
 
             <div className="grid grid-cols-3 gap-4 text-center text-sm">
