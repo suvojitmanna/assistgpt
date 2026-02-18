@@ -319,7 +319,7 @@ function Home() {
         isActivatedRef.current = false;
 
         if (limitReached) {
-          const limitMsg = `⚠️ Your free limit is over. Try next.${
+          const limitMsg = `⚠️ Your free limit is over. Try next${
             timeLeft
           } later.`;
           console.log(timeLeft);
