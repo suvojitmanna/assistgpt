@@ -51,6 +51,17 @@ function Home() {
   const replyCount = userData?.replyCount || 0;
   const limitReached = replyCount >= MAX_REPLIES;
 
+  const formatMessageTime = (isoTime) => {
+    if (!isoTime) return "";
+
+    const date = new Date(isoTime);
+
+    return date.toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
+
   // Load history from DB
   useEffect(() => {
     if (userData?.messages) {
@@ -197,7 +208,14 @@ function Home() {
       isSpeakingRef.current = false;
     };
 
-    const voices = synth.getVoices();
+    let voices = synth.getVoices();
+    if (!voices.length) {
+      synth.onvoiceschanged = () => {
+        voices = synth.getVoices();
+        synth.speak(utterance);
+      };
+      return;
+    }
 
     if (!voices.length) {
       speechSynthesis.onvoiceschanged = () => {
@@ -228,16 +246,22 @@ function Home() {
       };
 
       if (routes[type]) {
-        window.location.href = routes[type];
+        window.open(routes[type], "_blank");
       }
     }, 1000);
   };
 
   // ================= VOICE =================
   const startRecognition = () => {
-    if (isRecognizingRef.current || isSpeakingRef.current) return;
+    if (
+      !recognitionRef.current ||
+      isRecognizingRef.current ||
+      isSpeakingRef.current
+    )
+      return;
+
     try {
-      recognitionRef.current?.start();
+      recognitionRef.current.start();
     } catch (e) {
       console.error("Recognition start error:", e);
     }
@@ -246,7 +270,10 @@ function Home() {
   useEffect(() => {
     const SpeechRecognition =
       window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SpeechRecognition) return;
+    if (!SpeechRecognition) {
+      alert("Speech Recognition not supported in this browser");
+      return;
+    }
 
     const recognition = new SpeechRecognition();
     recognition.continuous = true;
@@ -292,21 +319,25 @@ function Home() {
         isActivatedRef.current = false;
 
         if (limitReached) {
-          const limitMsg = `⚠️ Your free limit is over. Try next working day.${
+          const limitMsg = `⚠️ Your free limit is over. Try next.${
             timeLeft
-          }`;
-          console.log(limitMsg);
+          } later.`;
+          console.log(timeLeft);
 
           setMessages((prev) => [
             ...prev,
-            { role: "assistant", text: limitMsg },
+            {
+              role: "assistant",
+              text: limitMsg,
+              time: new Date().toISOString(),
+            },
           ]);
           speak(limitMsg);
           processingRef.current = false;
           return;
         }
 
-        setMessages((prev) => [...prev, { role: "user", text: transcript }]);
+        const now = new Date().toISOString();
 
         setLoadingAI(true);
 
@@ -321,14 +352,14 @@ function Home() {
             lastReset: data.lastReset ?? prev.lastReset,
             messages: [
               ...(prev.messages || []),
-              { role: "user", text: transcript },
-              { role: "assistant", text: data.response },
+              { role: "user", text: transcript, time: now },
+              { role: "assistant", text: data.response, time: now },
             ],
           }));
 
           setMessages((prev) => [
             ...prev,
-            { role: "assistant", text: data.response },
+            { role: "assistant", text: data.response, time: now },
           ]);
 
           handleCommand(data);
@@ -397,8 +428,9 @@ function Home() {
                       : "text-green-400"
                   }`}
                 >
-                  {limitReached ? timeLeft : `${MAX_REPLIES - animatedCount} left`}
-
+                  {limitReached
+                    ? timeLeft
+                    : `${MAX_REPLIES - animatedCount} left`}
                 </p>
               </div>
             </div>
@@ -485,13 +517,27 @@ function Home() {
         {messages.map((msg, index) => (
           <div
             key={index}
-            className={`px-4 py-3 rounded-2xl shadow-md max-w-[85%] sm:max-w-[75%] ${
+            className={`flex flex-col max-w-[85%] sm:max-w-[75%] ${
               msg.role === "user"
-                ? "bg-white text-black self-end"
-                : "bg-blue-600 text-white self-start"
+                ? "self-end items-end"
+                : "self-start items-start"
             }`}
           >
-            {msg.text}
+            <div
+              className={`px-4 py-3 rounded-2xl shadow-md ${
+                msg.role === "user"
+                  ? "bg-white text-black"
+                  : "bg-blue-600 text-white"
+              }`}
+            >
+              {msg.text}
+            </div>
+
+            {msg.time && (
+              <span className="text-[10px] text-gray-400 mt-1 px-2">
+                {formatMessageTime(msg.time)}
+              </span>
+            )}
           </div>
         ))}
 
