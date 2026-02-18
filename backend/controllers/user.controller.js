@@ -64,16 +64,7 @@ export const asksToAssistant = async (req, res) => {
 
     const MAX_REPLIES = 10;
 
-    // 12 hour auto reset (ONLY resets replyCount)
-    const now = new Date();
-    const hoursPassed =
-      (now.getTime() - new Date(user.lastReset).getTime()) / (1000 * 60 * 60);
-
-    if (hoursPassed >= 12) {
-      user.replyCount = 0;
-      user.lastReset = now;
-      await user.save();
-    }
+    
 
     // Limit check
     if (user.replyCount >= MAX_REPLIES) {

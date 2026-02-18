@@ -16,8 +16,8 @@ function Home() {
   const [loadingAI, setLoadingAI] = useState(false);
   const [listening, setListening] = useState(false);
   const [animatedCount, setAnimatedCount] = useState(0);
-  const [limitStartTime, setLimitStartTime] = useState(null);
   const [timeLeft, setTimeLeft] = useState("");
+  const [currentTime, setCurrentTime] = useState("");
 
   const recognitionRef = useRef(null);
   const isRecognizingRef = useRef(false);
@@ -81,27 +81,49 @@ function Home() {
     return () => clearInterval(interval);
   }, [replyCount]);
 
-  // 12 Hour Countdown (Always Starts From 12h)
   useEffect(() => {
-    if (replyCount >= MAX_REPLIES) {
-      // If timer not already started
-      if (!limitStartTime) {
-        setLimitStartTime(Date.now());
-      }
-    } else {
-      // Reset everything if below limit
-      setLimitStartTime(null);
-      setTimeLeft("");
-    }
-  }, [replyCount]);
+    const interval = setInterval(() => {
+      const now = new Date();
 
+      setCurrentTime(
+        now.toLocaleString([], {
+          weekday: "short",
+          hour: "2-digit",
+          minute: "2-digit",
+        }),
+      );
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  const getRestoreTime = () => {
+    if (!userData?.lastReset) return "";
+
+    const lastReset = new Date(userData.lastReset);
+    const nextAvailable = new Date(lastReset.getTime() + 24 * 60 * 60 * 1000);
+
+    return nextAvailable.toLocaleString([], {
+      weekday: "short",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
+
+  // ================= LIMIT TIMER  =================
   useEffect(() => {
-    if (!limitStartTime) return;
+    if (!limitReached || !userData?.lastReset) {
+      setTimeLeft("");
+      return;
+    }
 
     const interval = setInterval(() => {
-      const now = Date.now();
-      const elapsed = now - limitStartTime;
-      const remaining = 12 * 60 * 60 * 1000 - elapsed;
+      const now = new Date();
+      const lastReset = new Date(userData.lastReset);
+
+      const nextAvailable = new Date(lastReset.getTime() + 24 * 60 * 60 * 1000);
+
+      const remaining = nextAvailable - now;
 
       if (remaining <= 0) {
         setTimeLeft("00h 00m 00s");
@@ -122,7 +144,7 @@ function Home() {
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [limitStartTime]);
+  }, [limitReached, userData?.lastReset]);
 
   // ================= LOGOUT =================
   const handleLogout = async () => {
@@ -150,7 +172,9 @@ function Home() {
     // Stop recognition before speaking
     try {
       recognitionRef.current?.stop();
-    } catch {}
+    } catch (e) {
+      console.error("Recognition stop error:", e);
+    }
 
     synth.cancel();
 
@@ -215,7 +239,7 @@ function Home() {
     try {
       recognitionRef.current?.start();
     } catch (e) {
-      console.log("Recognition start error caught");
+      console.error("Recognition start error:", e);
     }
   };
 
@@ -258,7 +282,7 @@ function Home() {
       // 🟢 STEP 1: Wake word detection
       if (!isActivatedRef.current && transcript.includes(assistantTrigger)) {
         isActivatedRef.current = true;
-        speak("Yes?");
+        speak("Yes");
         return;
       }
 
@@ -268,7 +292,11 @@ function Home() {
         isActivatedRef.current = false;
 
         if (limitReached) {
-          const limitMsg = "⚠️ Your free limit is over. Try next working day.";
+          const limitMsg = `⚠️ Your free limit is over. Try next working day.${
+            timeLeft
+          }`;
+          console.log(limitMsg);
+
           setMessages((prev) => [
             ...prev,
             { role: "assistant", text: limitMsg },
@@ -325,49 +353,114 @@ function Home() {
   return (
     <div
       className={`w-full min-h-screen bg-gradient-to-t from-black to-[#090993]
-      flex flex-col items-center px-4 relative transition-all duration-700
+      flex flex-col items-center  relative transition-all duration-700
       ${messages.length === 0 ? "justify-center" : "justify-start py-6"}`}
     >
-      {/* Top Buttons */}
-      <div
-        className="w-full flex flex-wrap justify-center sm:justify-end gap-3 
-sticky top-0 z-50 bg-gradient-to-t  
-py-4 px-4 "
-      >
-        <button
-          className="px-4 h-[40px] bg-white text-black rounded-full text-sm font-semibold hover:bg-gray-200 transition"
-          onClick={handleLogout}
-          disabled={loading}
-        >
-          {loading ? "Logging out..." : "Logout"}
-        </button>
+      {/* 🔥 STICKY HEADER (BOX + BUTTONS) */}
+      <div className="w-full sticky top-0  bg-gradient-to-b ">
+        <div className="max-w-9xl mx-auto flex items-start justify-between px-6 py-6">
+          {/* LEFT SIDE - TIME BOX */}
+          <div
+            className={`w-full max-w-[500px] rounded-2xl p-6 shadow-xl backdrop-blur-md border transition-all duration-500 ${
+              limitReached
+                ? "bg-gradient-to-r from-red-500/10 to-red-600/10 border-red-500/40"
+                : "bg-gradient-to-r from-blue-500/10 to-blue-600/10 border-blue-500/40"
+            }`}
+          >
+            <div
+              className={`text-center font-semibold text-sm mb-4 ${
+                limitReached ? "text-red-400" : "text-blue-400"
+              }`}
+            >
+              {limitReached
+                ? "⚠ Daily Free Limit Reached"
+                : "🚀 Enjoy your free usage today!"}
+            </div>
 
-        <button
-          onClick={async () => {
-            try {
-              await axios.post(
-                `${serverURL}/api/user/clear-history`,
-                {},
-                { withCredentials: true },
-              );
-              setMessages([]);
-              setUserData((prev) => ({ ...prev, messages: [] }));
-              toast.success("History cleared");
-            } catch (e) {
-              toast.error("Failed to clear history");
-            }
-          }}
-          className="px-4 h-[40px] bg-red-500 text-white rounded-full text-sm font-semibold hover:bg-red-600 transition"
-        >
-          Clear History
-        </button>
+            <div className="grid grid-cols-3 gap-4 text-center text-sm">
+              <div className="bg-white/5 rounded-xl p-3">
+                <p className="text-gray-400 text-[11px]">Current</p>
+                <p className="text-white font-medium">{currentTime}</p>
+              </div>
 
-        <button
-          className="px-4 h-[40px] bg-white text-black rounded-full text-sm font-semibold hover:bg-gray-200 transition"
-          onClick={() => navigate("/customize")}
-        >
-          Customize
-        </button>
+              <div className="bg-white/5 rounded-xl p-3">
+                <p className="text-gray-400 text-[11px]">Restores</p>
+                <p className="text-blue-300 font-medium">{getRestoreTime()}</p>
+              </div>
+
+              <div className="bg-white/5 rounded-xl p-3">
+                <p className="text-gray-400 text-[11px]">Remaining</p>
+                <p
+                  className={`font-bold ${
+                    limitReached
+                      ? "text-red-400 animate-pulse"
+                      : "text-green-400"
+                  }`}
+                >
+                  {limitReached ? timeLeft : `${MAX_REPLIES - animatedCount} left`}
+
+                </p>
+              </div>
+            </div>
+            {/* Usage Bar */}
+            <div className="w-full max-w-[500px] mt-4 px-2">
+              <div className="flex justify-between text-xs text-gray-300 mb-1">
+                <span>Daily Free Usage</span>
+                <span>
+                  {animatedCount} / {MAX_REPLIES}
+                </span>
+              </div>
+              <div className="w-full bg-white/20 rounded-full h-2">
+                <div
+                  className={`h-2 rounded-full transition-all duration-500 ease-out ${
+                    limitReached ? "bg-red-500" : "bg-blue-400"
+                  }`}
+                  style={{
+                    width: `${(animatedCount / MAX_REPLIES) * 100}%`,
+                  }}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* RIGHT SIDE - BUTTONS */}
+          <div className="flex gap-3 mt-5 p-6">
+            <button
+              className="px-4 h-[40px] bg-white text-black rounded-full text-sm font-semibold hover:bg-gray-200 transition"
+              onClick={handleLogout}
+              disabled={loading}
+            >
+              {loading ? "Logging out..." : "Logout"}
+            </button>
+
+            <button
+              onClick={async () => {
+                try {
+                  await axios.post(
+                    `${serverURL}/api/user/clear-history`,
+                    {},
+                    { withCredentials: true },
+                  );
+                  setMessages([]);
+                  setUserData((prev) => ({ ...prev, messages: [] }));
+                  toast.success("History cleared");
+                } catch {
+                  toast.error("Failed to clear history");
+                }
+              }}
+              className="px-4 h-[40px] bg-red-500 text-white rounded-full text-sm font-semibold hover:bg-red-600 transition"
+            >
+              Clear History
+            </button>
+
+            <button
+              className="px-4 h-[40px] bg-white text-black rounded-full text-sm font-semibold hover:bg-gray-200 transition"
+              onClick={() => navigate("/customize")}
+            >
+              Customize
+            </button>
+          </div>
+        </div>
       </div>
 
       {/* Avatar */}
@@ -381,36 +474,11 @@ py-4 px-4 "
 
       {/* Name */}
       <h1 className="text-white text-center text-xl sm:text-2xl font-semibold mt-6">
-        I'M{" "}
+        Welcome I'M{" "}
         <span className="text-blue-300">
           {userData?.assistantName || "Your Assistant"}
         </span>
       </h1>
-
-      {/* Usage Bar */}
-      <div className="w-full max-w-[500px] mt-4 px-2">
-        <div className="flex justify-between text-xs text-gray-300 mb-1">
-          <span>Daily Free Usage</span>
-          <span>
-            {animatedCount} / {MAX_REPLIES}
-          </span>
-        </div>
-        <div className="w-full bg-white/20 rounded-full h-2">
-          <div
-            className={`h-2 rounded-full transition-all duration-500 ease-out ${
-              limitReached ? "bg-red-500" : "bg-blue-400"
-            }`}
-            style={{
-              width: `${(animatedCount / MAX_REPLIES) * 100}%`,
-            }}
-          />
-        </div>
-      </div>
-      {limitReached && (
-        <p className="text-red-400 text-xs sm:text-sm mt-2 text-center animate-pulse">
-          Resets in {timeLeft}
-        </p>
-      )}
 
       {/* Chat */}
       <div className="w-full max-w-2xl mt-6 bg-white/10 backdrop-blur-xl rounded-3xl p-4 sm:p-6 shadow-2xl border border-white/20 flex flex-col gap-4 overflow-y-auto max-h-[350px] sm:max-h-[450px]">
