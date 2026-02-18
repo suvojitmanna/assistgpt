@@ -15,79 +15,221 @@ function Home() {
   const [typingText, setTypingText] = useState("");
   const [loadingAI, setLoadingAI] = useState(false);
   const [listening, setListening] = useState(false);
+  const [animatedCount, setAnimatedCount] = useState(0);
+  const [limitStartTime, setLimitStartTime] = useState(null);
+  const [timeLeft, setTimeLeft] = useState("");
 
   const recognitionRef = useRef(null);
   const isRecognizingRef = useRef(false);
   const isSpeakingRef = useRef(false);
   const chatEndRef = useRef(null);
+  const processingRef = useRef(false);
+  const isActivatedRef = useRef(false);
 
-  const synth = window.speechSynthesis;
+  useEffect(() => {
+    const unlockAudio = () => {
+      if (!("speechSynthesis" in window)) return;
+
+      const utter = new SpeechSynthesisUtterance("");
+      window.speechSynthesis.speak(utter);
+      window.speechSynthesis.cancel();
+
+      document.removeEventListener("click", unlockAudio);
+      document.removeEventListener("touchstart", unlockAudio);
+    };
+
+    document.addEventListener("click", unlockAudio);
+    document.addEventListener("touchstart", unlockAudio);
+
+    return () => {
+      document.removeEventListener("click", unlockAudio);
+      document.removeEventListener("touchstart", unlockAudio);
+    };
+  }, []);
 
   const MAX_REPLIES = 10;
   const replyCount = userData?.replyCount || 0;
   const limitReached = replyCount >= MAX_REPLIES;
 
-  // ================= MOBILE UNLOCK =================
+  // Load history from DB
   useEffect(() => {
-    const unlock = () => {
-      synth.resume();
-    };
+    if (userData?.messages) {
+      setMessages(userData.messages);
+    }
+  }, [userData?.messages]);
 
-    window.addEventListener("click", unlock);
-    return () => window.removeEventListener("click", unlock);
-  }, []);
+  // Smooth Animated Counter
+  useEffect(() => {
+    let start = animatedCount;
+    let end = replyCount;
+    if (start === end) return;
+
+    const duration = 400;
+    const incrementTime = 20;
+    const steps = duration / incrementTime;
+    const increment = (end - start) / steps;
+
+    const interval = setInterval(() => {
+      start += increment;
+      if ((increment > 0 && start >= end) || (increment < 0 && start <= end)) {
+        start = end;
+        clearInterval(interval);
+      }
+      setAnimatedCount(Math.round(start));
+    }, incrementTime);
+
+    return () => clearInterval(interval);
+  }, [replyCount]);
+
+  // 12 Hour Countdown (Always Starts From 12h)
+  useEffect(() => {
+    if (replyCount >= MAX_REPLIES) {
+      // If timer not already started
+      if (!limitStartTime) {
+        setLimitStartTime(Date.now());
+      }
+    } else {
+      // Reset everything if below limit
+      setLimitStartTime(null);
+      setTimeLeft("");
+    }
+  }, [replyCount]);
+
+  useEffect(() => {
+    if (!limitStartTime) return;
+
+    const interval = setInterval(() => {
+      const now = Date.now();
+      const elapsed = now - limitStartTime;
+      const remaining = 12 * 60 * 60 * 1000 - elapsed;
+
+      if (remaining <= 0) {
+        setTimeLeft("00h 00m 00s");
+        clearInterval(interval);
+        return;
+      }
+
+      const hours = Math.floor(remaining / (1000 * 60 * 60));
+      const minutes = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60));
+      const seconds = Math.floor((remaining % (1000 * 60)) / 1000);
+
+      setTimeLeft(
+        `${String(hours).padStart(2, "0")}h ${String(minutes).padStart(
+          2,
+          "0",
+        )}m ${String(seconds).padStart(2, "0")}s`,
+      );
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [limitStartTime]);
+
+  // ================= LOGOUT =================
+  const handleLogout = async () => {
+    try {
+      setLoading(true);
+      await axios.get(`${serverURL}/api/auth/signout`, {
+        withCredentials: true,
+      });
+      toast.success("Logged out successfully 👋");
+    } catch {
+      toast.error("Session ended. Logging out...");
+    } finally {
+      setUserData(null);
+      setLoading(false);
+      navigate("/signin");
+    }
+  };
 
   // ================= SPEAK =================
   const speak = (text) => {
-  if (!text) return;
+    if (!("speechSynthesis" in window)) return;
 
-  const synth = window.speechSynthesis;
+    const synth = window.speechSynthesis;
 
-  // Stop recognition only
-  try {
-    recognitionRef.current?.stop();
-  } catch {}
+    // Stop recognition before speaking
+    try {
+      recognitionRef.current?.stop();
+    } catch {}
 
-  // Small delay (very important on Android)
-  setTimeout(() => {
+    synth.cancel();
+
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.lang = "en-US";
 
+    utterance.onstart = () => {
+      isSpeakingRef.current = true;
+    };
+
     utterance.onend = () => {
+      isSpeakingRef.current = false;
+
       setTimeout(() => {
         startRecognition();
-      }, 1500);
+      }, 150);
     };
 
-    utterance.onerror = (e) => {
-      console.log("Speech error:", e);
+    utterance.onerror = () => {
+      isSpeakingRef.current = false;
     };
 
-    synth.speak(utterance);
-  }, 400); // Android needs delay
-};
+    const voices = synth.getVoices();
 
-
-  // ================= START RECOGNITION =================
-  const startRecognition = () => {
-    if (isRecognizingRef.current || isSpeakingRef.current) return;
-
-    try {
-      recognitionRef.current?.start();
-    } catch {}
+    if (!voices.length) {
+      speechSynthesis.onvoiceschanged = () => {
+        synth.speak(utterance);
+      };
+    } else {
+      synth.speak(utterance);
+    }
   };
 
-  // ================= VOICE RECOGNITION =================
+  // ================= HANDLE COMMAND =================
+  const handleCommand = (data) => {
+    const { type, userInput, response } = data;
+    speak(response);
+
+    setTimeout(() => {
+      const query = encodeURIComponent(userInput);
+      const routes = {
+        "google-search": `https://www.google.com/search?q=${query}`,
+        "youtube-search": `https://www.youtube.com/results?search_query=${query}`,
+        "youtube-play": `https://www.youtube.com/results?search_query=${query}`,
+        "instagram-open": `https://www.instagram.com/`,
+        "facebook-open": `https://m.facebook.com/`,
+        "linkedin-search": `https://www.linkedin.com/search/results/all/?keywords=${query}`,
+        "calculator-open": `https://www.online-calculator.com/`,
+        "get-news": `https://news.google.com/`,
+        "weather-show": `https://www.google.com/search?q=weather+${query}`,
+      };
+
+      if (routes[type]) {
+        window.location.href = routes[type];
+      }
+    }, 1000);
+  };
+
+  // ================= VOICE =================
+  const startRecognition = () => {
+    if (isRecognizingRef.current || isSpeakingRef.current) return;
+    try {
+      recognitionRef.current?.start();
+    } catch (e) {
+      console.log("Recognition start error caught");
+    }
+  };
+
   useEffect(() => {
     const SpeechRecognition =
       window.SpeechRecognition || window.webkitSpeechRecognition;
-
     if (!SpeechRecognition) return;
 
     const recognition = new SpeechRecognition();
     recognition.continuous = true;
-    recognition.lang = "en-US";
+    recognition.interimResults = true;
+    recognition.maxAlternatives = 1;
 
+    recognition.lang = "en-US";
     recognitionRef.current = recognition;
 
     recognition.onstart = () => {
@@ -98,20 +240,32 @@ function Home() {
     recognition.onend = () => {
       isRecognizingRef.current = false;
       setListening(false);
-
       if (!isSpeakingRef.current) {
         setTimeout(() => startRecognition(), 1000);
       }
     };
 
     recognition.onresult = async (event) => {
-      const transcript = event.results[event.resultIndex][0].transcript;
+      const result = event.results[event.resultIndex];
+      const transcript = result[0].transcript.toLowerCase().trim();
+      const isFinal = result.isFinal;
 
       const assistantTrigger =
         userData?.assistantName?.toLowerCase() || "assistant";
 
-      if (transcript.toLowerCase().includes(assistantTrigger)) {
-        recognition.stop();
+      if (!isFinal) return;
+
+      // 🟢 STEP 1: Wake word detection
+      if (!isActivatedRef.current && transcript.includes(assistantTrigger)) {
+        isActivatedRef.current = true;
+        speak("Yes?");
+        return;
+      }
+
+      // 🟢 STEP 2: After wake word → treat next speech as command
+      if (isActivatedRef.current && !processingRef.current) {
+        processingRef.current = true;
+        isActivatedRef.current = false;
 
         if (limitReached) {
           const limitMsg = "⚠️ Your free limit is over. Try next working day.";
@@ -120,6 +274,7 @@ function Home() {
             { role: "assistant", text: limitMsg },
           ]);
           speak(limitMsg);
+          processingRef.current = false;
           return;
         }
 
@@ -131,36 +286,34 @@ function Home() {
 
         setLoadingAI(false);
 
-        if (data?.response) {
-          let i = 0;
-          setTypingText("");
+        if (data) {
+          setUserData((prev) => ({
+            ...prev,
+            replyCount: data.replyCount ?? prev.replyCount,
+            lastReset: data.lastReset ?? prev.lastReset,
+            messages: [
+              ...(prev.messages || []),
+              { role: "user", text: transcript },
+              { role: "assistant", text: data.response },
+            ],
+          }));
 
-          const interval = setInterval(() => {
-            if (i < data.response.length) {
-              setTypingText((prev) => prev + data.response[i]);
-              i++;
-            } else {
-              clearInterval(interval);
+          setMessages((prev) => [
+            ...prev,
+            { role: "assistant", text: data.response },
+          ]);
 
-              setMessages((prev) => [
-                ...prev,
-                { role: "assistant", text: data.response },
-              ]);
-
-              setTypingText("");
-
-              // SPEAK ONLY ONCE
-              speak(data.response);
-            }
-          }, 20);
+          handleCommand(data);
         }
+
+        processingRef.current = false;
       }
     };
 
     startRecognition();
-
     return () => {
       recognition.stop();
+      window.speechSynthesis.cancel();
     };
   }, [limitReached, userData?.assistantName]);
 
@@ -168,25 +321,6 @@ function Home() {
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, typingText, loadingAI]);
-
-  // ================= LOGOUT =================
-  const handleLogout = async () => {
-    try {
-      setLoading(true);
-
-      await axios.get(`${serverURL}/api/auth/signout`, {
-        withCredentials: true,
-      });
-
-      toast.success("Logged out successfully 👋");
-    } catch (error) {
-      toast.error("Session ended. Logging out...");
-    } finally {
-      setUserData(null);
-      setLoading(false);
-      navigate("/signin");
-    }
-  };
 
   return (
     <div
@@ -258,7 +392,7 @@ py-4 px-4 "
         <div className="flex justify-between text-xs text-gray-300 mb-1">
           <span>Daily Free Usage</span>
           <span>
-            {replyCount} / {MAX_REPLIES}
+            {animatedCount} / {MAX_REPLIES}
           </span>
         </div>
         <div className="w-full bg-white/20 rounded-full h-2">
@@ -267,14 +401,14 @@ py-4 px-4 "
               limitReached ? "bg-red-500" : "bg-blue-400"
             }`}
             style={{
-              width: `${(replyCount / MAX_REPLIES) * 100}%`,
+              width: `${(animatedCount / MAX_REPLIES) * 100}%`,
             }}
           />
         </div>
       </div>
       {limitReached && (
         <p className="text-red-400 text-xs sm:text-sm mt-2 text-center animate-pulse">
-          Daily limit reached
+          Resets in {timeLeft}
         </p>
       )}
 
