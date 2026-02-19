@@ -186,55 +186,53 @@ function Home() {
   };
 
   // ================= SPEAK =================
-  const speak = (text) => {
-    if (!("speechSynthesis" in window)) return;
+  const speak = (text, redirectUrl = null) => {
+  if (!("speechSynthesis" in window)) return;
 
-    const synth = window.speechSynthesis;
+  const synth = window.speechSynthesis;
 
-    // Stop recognition before speaking
+  // Stop recognition safely
+  if (recognitionRef.current && isRecognizingRef.current) {
     try {
-      recognitionRef.current?.stop();
-    } catch (e) {
-      console.error("Recognition stop error:", e);
-    }
+      recognitionRef.current.stop();
+    } catch (e) {}
+  }
 
-    synth.cancel();
+  synth.cancel();
 
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = "en-US";
+  const utterance = new SpeechSynthesisUtterance(text);
+  utterance.lang = "en-US";
 
-    utterance.onstart = () => {
-      isSpeakingRef.current = true;
-    };
+  utterance.onstart = () => {
+    isSpeakingRef.current = true;
+  };
 
-    utterance.onend = () => {
-      isSpeakingRef.current = false;
+  utterance.onend = () => {
+    isSpeakingRef.current = false;
 
-      setTimeout(() => {
-        startRecognition();
-      }, 150);
-    };
-
-    utterance.onerror = () => {
-      isSpeakingRef.current = false;
-    };
-
-    let voices = synth.getVoices();
-
-    if (!voices.length) {
-      synth.onvoiceschanged = () => {
-        synth.speak(utterance);
-      };
+    if (redirectUrl) {
+      window.location.href = redirectUrl;
     } else {
-      synth.speak(utterance);
+      // ✅ Force restart listening
+      setTimeout(() => {
+        if (!isRecognizingRef.current) {
+          startRecognition();
+        }
+      }, 500);
     }
   };
+
+  utterance.onerror = () => {
+    isSpeakingRef.current = false;
+  };
+
+  synth.speak(utterance);
+};
+
 
   // ================= HANDLE COMMAND =================
   const handleCommand = (data) => {
     const { type, userInput, response } = data;
-
-    speak(response);
 
     const query = encodeURIComponent(userInput);
 
@@ -250,9 +248,10 @@ function Home() {
       "weather-show": `https://www.google.com/search?q=weather+${query}`,
     };
 
-    if (routes[type]) {
-      window.location.href = routes[type];
-    }
+    const url = routes[type] || null;
+
+    // ✅ Speak first, redirect after speech ends
+    speak(response, url);
   };
 
   // ================= VOICE =================
@@ -350,7 +349,7 @@ function Home() {
           if (data) {
             setUserData((prev) => ({
               ...prev,
-              replyCount: data.replyCount ?? prev.replyCount,
+              replyCount: (prev.replyCount || 0) + 1,
               lastReset: data.lastReset ?? prev.lastReset,
               messages: [
                 ...(prev.messages || []),
@@ -544,6 +543,10 @@ function Home() {
         </span>
       </h1>
 
+      <p className="text-gray-300 text-xs sm:text-sm mt-6">
+        {listening ? "🎤 Listening..." : "💤 Waiting for wake word..."}
+      </p>
+
       {/* Chat */}
       <div className="w-full max-w-2xl mt-6 bg-white/10 backdrop-blur-xl rounded-3xl p-4 sm:p-6 shadow-2xl border border-white/20 flex flex-col gap-4 overflow-y-auto max-h-[350px] sm:max-h-[450px] auto-scroll">
         {messages.map((msg, index) => {
@@ -595,10 +598,7 @@ function Home() {
           </div>
         )}
       </div>
-
-      <p className="text-gray-300 text-xs sm:text-sm mt-6">
-        {listening ? "🎤 Listening..." : "💤 Waiting for wake word..."}
-      </p>
+      <div ref={chatEndRef} />
     </div>
   );
 }
