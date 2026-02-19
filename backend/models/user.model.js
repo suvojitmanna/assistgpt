@@ -39,7 +39,7 @@ const userSchema = new mongoose.Schema(
           enum: ["user", "assistant"],
         },
         text: String,
-        createdAt: {
+        time: {
           type: Date,
           default: Date.now,
         },

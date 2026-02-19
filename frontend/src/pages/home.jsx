@@ -109,12 +109,15 @@ function Home() {
   }, []);
 
   const getRestoreTime = () => {
-    if (!userData?.lastReset) return "";
+    const now = new Date();
 
-    const lastReset = new Date(userData.lastReset);
-    const nextAvailable = new Date(lastReset.getTime() + 24 * 60 * 60 * 1000);
+    const tomorrowMidnight = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate() + 1,
+    );
 
-    return nextAvailable.toLocaleString([], {
+    return tomorrowMidnight.toLocaleString([], {
       weekday: "short",
       hour: "2-digit",
       minute: "2-digit",
@@ -123,22 +126,30 @@ function Home() {
 
   // ================= LIMIT TIMER  =================
   useEffect(() => {
-    if (!limitReached || !userData?.lastReset) {
+    if (!limitReached) {
       setTimeLeft("");
       return;
     }
 
     const interval = setInterval(() => {
       const now = new Date();
-      const lastReset = new Date(userData.lastReset);
 
-      const nextAvailable = new Date(lastReset.getTime() + 24 * 60 * 60 * 1000);
+      // Tomorrow at 00:00
+      const tomorrowMidnight = new Date(
+        now.getFullYear(),
+        now.getMonth(),
+        now.getDate() + 1,
+      );
 
-      const remaining = nextAvailable - now;
+      const remaining = tomorrowMidnight - now;
 
       if (remaining <= 0) {
         setTimeLeft("00h 00m 00s");
         clearInterval(interval);
+
+        // Optional: refresh user automatically
+        window.location.reload();
+
         return;
       }
 
@@ -155,7 +166,7 @@ function Home() {
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [limitReached, userData?.lastReset]);
+  }, [limitReached]);
 
   // ================= LOGOUT =================
   const handleLogout = async () => {
@@ -209,16 +220,9 @@ function Home() {
     };
 
     let voices = synth.getVoices();
-    if (!voices.length) {
-      synth.onvoiceschanged = () => {
-        voices = synth.getVoices();
-        synth.speak(utterance);
-      };
-      return;
-    }
 
     if (!voices.length) {
-      speechSynthesis.onvoiceschanged = () => {
+      synth.onvoiceschanged = () => {
         synth.speak(utterance);
       };
     } else {
@@ -229,26 +233,26 @@ function Home() {
   // ================= HANDLE COMMAND =================
   const handleCommand = (data) => {
     const { type, userInput, response } = data;
+
     speak(response);
 
-    setTimeout(() => {
-      const query = encodeURIComponent(userInput);
-      const routes = {
-        "google-search": `https://www.google.com/search?q=${query}`,
-        "youtube-search": `https://www.youtube.com/results?search_query=${query}`,
-        "youtube-play": `https://www.youtube.com/results?search_query=${query}`,
-        "instagram-open": `https://www.instagram.com/`,
-        "facebook-open": `https://m.facebook.com/`,
-        "linkedin-search": `https://www.linkedin.com/search/results/all/?keywords=${query}`,
-        "calculator-open": `https://www.online-calculator.com/`,
-        "get-news": `https://news.google.com/`,
-        "weather-show": `https://www.google.com/search?q=weather+${query}`,
-      };
+    const query = encodeURIComponent(userInput);
 
-      if (routes[type]) {
-        window.open(routes[type], "_blank");
-      }
-    }, 1000);
+    const routes = {
+      "google-search": `https://www.google.com/search?q=${query}`,
+      "youtube-search": `https://www.youtube.com/results?search_query=${query}`,
+      "youtube-play": `https://www.youtube.com/results?search_query=${query}`,
+      "instagram-open": `https://www.instagram.com/`,
+      "facebook-open": `https://www.facebook.com/`,
+      "linkedin-search": `https://www.linkedin.com/search/results/all/?keywords=${query}`,
+      "calculator-open": `https://www.online-calculator.com/`,
+      "get-news": `https://news.google.com/`,
+      "weather-show": `https://www.google.com/search?q=weather+${query}`,
+    };
+
+    if (routes[type]) {
+      window.location.href = routes[type];
+    }
   };
 
   // ================= VOICE =================
@@ -319,9 +323,8 @@ function Home() {
         isActivatedRef.current = false;
 
         if (limitReached) {
-          const limitMsg = `⚠️ Your free limit is over. Try next${
-            timeLeft
-          } later.`;
+          const limitMsg = `⚠️ Your free limit is over. Try next ${timeLeft} later.`;
+
           console.log(timeLeft);
 
           setMessages((prev) => [
@@ -341,31 +344,36 @@ function Home() {
 
         setLoadingAI(true);
 
-        const data = await getGeminiResponse(transcript);
+        try {
+          const data = await getGeminiResponse(transcript);
 
-        setLoadingAI(false);
+          if (data) {
+            setUserData((prev) => ({
+              ...prev,
+              replyCount: data.replyCount ?? prev.replyCount,
+              lastReset: data.lastReset ?? prev.lastReset,
+              messages: [
+                ...(prev.messages || []),
+                { role: "user", text: transcript, time: now },
+                { role: "assistant", text: data.response, time: now },
+              ],
+            }));
 
-        if (data) {
-          setUserData((prev) => ({
-            ...prev,
-            replyCount: data.replyCount ?? prev.replyCount,
-            lastReset: data.lastReset ?? prev.lastReset,
-            messages: [
-              ...(prev.messages || []),
+            setMessages((prev) => [
+              ...prev,
               { role: "user", text: transcript, time: now },
               { role: "assistant", text: data.response, time: now },
-            ],
-          }));
+            ]);
 
-          setMessages((prev) => [
-            ...prev,
-            { role: "assistant", text: data.response, time: now },
-          ]);
-
-          handleCommand(data);
+            handleCommand(data);
+          }
+        } catch (err) {
+          console.error("Gemini Error:", err);
+          toast.error("Something went wrong");
+        } finally {
+          setLoadingAI(false);
+          processingRef.current = false;
         }
-
-        processingRef.current = false;
       }
     };
 
@@ -374,12 +382,36 @@ function Home() {
       recognition.stop();
       window.speechSynthesis.cancel();
     };
-  }, [limitReached, userData?.assistantName]);
+  }, [userData?.assistantName]);
 
   // ================= AUTO SCROLL =================
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, typingText, loadingAI]);
+
+  const formatDateLabel = (dateString) => {
+    if (!dateString) return "";
+
+    const messageDate = new Date(dateString);
+    const today = new Date();
+    const yesterday = new Date();
+
+    yesterday.setDate(today.getDate() - 1);
+
+    if (messageDate.toDateString() === today.toDateString()) {
+      return "Today";
+    }
+
+    if (messageDate.toDateString() === yesterday.toDateString()) {
+      return "Yesterday";
+    }
+
+    return messageDate.toLocaleDateString([], {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    });
+  };
 
   return (
     <div
@@ -513,47 +545,55 @@ function Home() {
       </h1>
 
       {/* Chat */}
-      <div className="w-full max-w-2xl mt-6 bg-white/10 backdrop-blur-xl rounded-3xl p-4 sm:p-6 shadow-2xl border border-white/20 flex flex-col gap-4 overflow-y-auto max-h-[350px] sm:max-h-[450px]">
-        {messages.map((msg, index) => (
-          <div
-            key={index}
-            className={`flex flex-col max-w-[85%] sm:max-w-[75%] ${
-              msg.role === "user"
-                ? "self-end items-end"
-                : "self-start items-start"
-            }`}
-          >
-            <div
-              className={`px-4 py-3 rounded-2xl shadow-md ${
-                msg.role === "user"
-                  ? "bg-white text-black"
-                  : "bg-blue-600 text-white"
-              }`}
-            >
-              {msg.text}
-            </div>
+      <div className="w-full max-w-2xl mt-6 bg-white/10 backdrop-blur-xl rounded-3xl p-4 sm:p-6 shadow-2xl border border-white/20 flex flex-col gap-4 overflow-y-auto max-h-[350px] sm:max-h-[450px] auto-scroll">
+        {messages.map((msg, index) => {
+          const showDate =
+            index === 0 ||
+            new Date(messages[index - 1].time).toDateString() !==
+              new Date(msg.time).toDateString();
 
-            {msg.time && (
-              <span className="text-[10px] text-gray-400 mt-1 px-2">
-                {formatMessageTime(msg.time)}
-              </span>
-            )}
-          </div>
-        ))}
+          return (
+            // 🔥 IMPORTANT RETURN HERE
+            <React.Fragment key={index}>
+              {showDate && (
+                <div className="text-center text-xs text-gray-400 my-2">
+                  {formatDateLabel(msg.time)}
+                </div>
+              )}
 
-        {typingText && (
-          <div className="bg-blue-600 text-white px-4 py-3 rounded-2xl self-start max-w-[85%] sm:max-w-[75%]">
-            {typingText}
-          </div>
-        )}
+              <div
+                className={`flex flex-col max-w-[85%] sm:max-w-[75%] ${
+                  msg.role === "user"
+                    ? "self-end items-end"
+                    : "self-start items-start"
+                }`}
+              >
+                <div
+                  className={`px-4 py-3 rounded-2xl shadow-md ${
+                    msg.role === "user"
+                      ? "bg-white text-black"
+                      : "bg-blue-600 text-white"
+                  }`}
+                >
+                  {msg.text}
+                </div>
 
+                {msg.time && (
+                  <span className="text-[10px] text-gray-400 mt-1 px-2">
+                    {formatMessageTime(msg.time)}
+                  </span>
+                )}
+              </div>
+            </React.Fragment>
+          );
+        })}
         {loadingAI && (
-          <div className="bg-blue-600 text-white px-4 py-3 rounded-2xl animate-pulse self-start">
-            Thinking...
+          <div className="flex flex-col max-w-[75%] self-start">
+            <div className="px-4 py-3 rounded-2xl shadow-md bg-blue-600 text-white animate-pulse">
+              🔎 Searching...
+            </div>
           </div>
         )}
-
-        <div ref={chatEndRef} />
       </div>
 
       <p className="text-gray-300 text-xs sm:text-sm mt-6">

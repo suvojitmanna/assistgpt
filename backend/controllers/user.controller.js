@@ -61,10 +61,22 @@ export const asksToAssistant = async (req, res) => {
         message: "User not found",
       });
     }
+    // ===== 24 Hour Auto Reset Logic =====
+    const now = Date.now();
 
+    if (!user.lastReset) {
+      user.lastReset = new Date();
+    }
+
+    const lastResetTime = user.lastReset.getTime();
+    const TWENTY_FOUR_HOURS = 24 * 60 * 60 * 1000;
+
+    if (now - lastResetTime >= TWENTY_FOUR_HOURS) {
+      user.replyCount = 0;
+      user.lastReset = new Date();
+      await user.save();
+    }
     const MAX_REPLIES = 10;
-
-    
 
     // Limit check
     if (user.replyCount >= MAX_REPLIES) {
