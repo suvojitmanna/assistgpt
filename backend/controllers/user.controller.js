@@ -62,18 +62,23 @@ export const asksToAssistant = async (req, res) => {
       });
     }
     // ===== 24 Hour Auto Reset Logic =====
-    const now = Date.now();
+    const now = new Date();
 
     if (!user.lastReset) {
-      user.lastReset = new Date();
+      user.lastReset = now;
+      await user.save();
     }
 
-    const lastResetTime = user.lastReset.getTime();
-    const TWENTY_FOUR_HOURS = 24 * 60 * 60 * 1000;
+    const lastReset = new Date(user.lastReset);
 
-    if (now - lastResetTime >= TWENTY_FOUR_HOURS) {
+    // If date changed → reset
+    if (
+      now.getDate() !== lastReset.getDate() ||
+      now.getMonth() !== lastReset.getMonth() ||
+      now.getFullYear() !== lastReset.getFullYear()
+    ) {
       user.replyCount = 0;
-      user.lastReset = new Date();
+      user.lastReset = now;
       await user.save();
     }
     const MAX_REPLIES = 10;
@@ -150,7 +155,7 @@ export const clearChatHistory = async (req, res) => {
   try {
     const user = await User.findById(req.userId);
 
-    user.messages = []; // only clear messages
+    user.messages = [];
     await user.save();
 
     res.json({ message: "History cleared successfully" });

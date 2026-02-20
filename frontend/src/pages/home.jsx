@@ -348,15 +348,15 @@ function Home() {
 
           if (data) {
             setUserData((prev) => ({
-              ...prev,
-              replyCount: (prev.replyCount || 0) + 1,
-              lastReset: data.lastReset ?? prev.lastReset,
-              messages: [
-                ...(prev.messages || []),
-                { role: "user", text: transcript, time: now },
-                { role: "assistant", text: data.response, time: now },
-              ],
-            }));
+  ...prev,
+  replyCount: data.replyCount,  
+  lastReset: data.lastReset,
+  messages: [
+    ...(prev.messages || []),
+    { role: "user", text: transcript, time: now },
+    { role: "assistant", text: data.response, time: now },
+  ],
+}));
 
             setMessages((prev) => [
               ...prev,
