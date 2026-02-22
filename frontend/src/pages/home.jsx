@@ -187,74 +187,94 @@ function Home() {
 
   // ================= SPEAK =================
   const speak = (text, redirectUrl = null) => {
-  if (!("speechSynthesis" in window)) return;
+    if (!("speechSynthesis" in window)) return;
 
-  const synth = window.speechSynthesis;
+    const synth = window.speechSynthesis;
 
-  // Stop recognition safely
-  if (recognitionRef.current && isRecognizingRef.current) {
-    try {
-      recognitionRef.current.stop();
-    } catch (e) {}
-  }
-
-  synth.cancel();
-
-  const utterance = new SpeechSynthesisUtterance(text);
-  utterance.lang = "en-US";
-
-  utterance.onstart = () => {
-    isSpeakingRef.current = true;
-  };
-
-  utterance.onend = () => {
-    isSpeakingRef.current = false;
-
-    if (redirectUrl) {
-      window.location.href = redirectUrl;
-    } else {
-      // ✅ Force restart listening
-      setTimeout(() => {
-        if (!isRecognizingRef.current) {
-          startRecognition();
-        }
-      }, 500);
+    // Stop recognition safely
+    if (recognitionRef.current && isRecognizingRef.current) {
+      try {
+        recognitionRef.current.stop();
+      } catch (e) {}
     }
+
+    synth.cancel();
+
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = "en-US";
+
+    utterance.onstart = () => {
+      isSpeakingRef.current = true;
+    };
+
+    utterance.onend = () => {
+      isSpeakingRef.current = false;
+
+      if (redirectUrl) {
+        window.location.href = redirectUrl;
+      } else {
+        // ✅ Force restart listening
+        setTimeout(() => {
+          if (!isRecognizingRef.current) {
+            startRecognition();
+          }
+        }, 500);
+      }
+    };
+
+    utterance.onerror = () => {
+      isSpeakingRef.current = false;
+    };
+
+    synth.speak(utterance);
   };
-
-  utterance.onerror = () => {
-    isSpeakingRef.current = false;
-  };
-
-  synth.speak(utterance);
-};
-
 
   // ================= HANDLE COMMAND =================
   const handleCommand = (data) => {
-    const { type, userInput, response } = data;
+    if (!data) return;
 
-    const query = encodeURIComponent(userInput);
+    const { type, userInput = "", response } = data;
+
+    const trimmedInput = userInput.trim();
+    const query = encodeURIComponent(trimmedInput);
 
     const routes = {
-      "google-search": `https://www.google.com/search?q=${query}`,
-      "youtube-search": `https://www.youtube.com/results?search_query=${query}`,
-      "youtube-play": `https://www.youtube.com/results?search_query=${query}`,
+      "google-search": query
+        ? `https://www.google.com/search?q=${query}`
+        : `https://www.google.com/`,
+
+      "youtube-search": query
+        ? `https://www.youtube.com/results?search_query=${query}`
+        : `https://www.youtube.com/`,
+
+      "youtube-play": query
+        ? `https://www.youtube.com/results?search_query=${query}`
+        : `https://www.youtube.com/`,
+
       "instagram-open": `https://www.instagram.com/`,
+
       "facebook-open": `https://www.facebook.com/`,
-      "github-open": `https://github.com/${query}`,
-      "linkedin-search": `https://www.linkedin.com/search/results/all/?keywords=${query}`,
+
+      "github-open": query
+        ? `https://github.com/${query}`
+        : `https://github.com/`,
+
+      "linkedin-search": query
+        ? `https://www.linkedin.com/search/results/all/?keywords=${query}`
+        : `https://www.linkedin.com/`,
+
       "calculator-open": `https://www.online-calculator.com/`,
+
       "get-news": `https://news.google.com/`,
-      "weather-show": `https://www.google.com/search?q=weather+${query}`,
+
+      "weather-show": query
+        ? `https://www.google.com/search?q=weather+${query}`
+        : `https://www.google.com/search?q=weather`,
     };
 
-    const url = routes[type] || null;
-
-    // ✅ Speak first, redirect after speech ends
+    const url = routes[type] ?? null;
     speak(response, url);
   };
-
   // ================= VOICE =================
   const startRecognition = () => {
     if (
@@ -349,15 +369,15 @@ function Home() {
 
           if (data) {
             setUserData((prev) => ({
-  ...prev,
-  replyCount: data.replyCount,  
-  lastReset: data.lastReset,
-  messages: [
-    ...(prev.messages || []),
-    { role: "user", text: transcript, time: now },
-    { role: "assistant", text: data.response, time: now },
-  ],
-}));
+              ...prev,
+              replyCount: data.replyCount,
+              lastReset: data.lastReset,
+              messages: [
+                ...(prev.messages || []),
+                { role: "user", text: transcript, time: now },
+                { role: "assistant", text: data.response, time: now },
+              ],
+            }));
 
             setMessages((prev) => [
               ...prev,
