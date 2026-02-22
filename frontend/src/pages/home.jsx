@@ -242,6 +242,7 @@ function Home() {
       "youtube-play": `https://www.youtube.com/results?search_query=${query}`,
       "instagram-open": `https://www.instagram.com/`,
       "facebook-open": `https://www.facebook.com/`,
+      "github-open": `https://github.com/${query}`,
       "linkedin-search": `https://www.linkedin.com/search/results/all/?keywords=${query}`,
       "calculator-open": `https://www.online-calculator.com/`,
       "get-news": `https://news.google.com/`,
