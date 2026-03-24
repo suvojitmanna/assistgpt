@@ -1,165 +1,106 @@
-🤖 AssistGPT – AI Voice Assistant (MERN + Gemini)
+<h1 align="center">🚀 AssistGPT</h1>
 
-A browser-based AI Voice Assistant built with the MERN stack and Google Gemini API.
+<p align="center">
+  🤖 AI-Powered Assistant • ⚡ MERN Stack • 🚀 Modern UI
+</p>
 
-The assistant listens for a wake word, understands voice commands, responds using AI-generated speech, and performs smart browser actions — completely hands-free.
+<p align="center">
+  <a href="https://assistgpt-sable.vercel.app">🌐 Live Demo</a> •
+  <a href="https://github.com/suvojitmanna/assistgpt">📂 Repository</a>
+</p>
 
-🎤 Features
-🔊 Voice System
+---
 
-Wake-word based voice activation
+## 🧠 About the Project
 
-Continuous speech recognition (Web Speech API)
+AssistGPT is a **full-stack AI assistant application** that enables users to interact with an intelligent chatbot capable of generating responses, assisting with tasks, and enhancing productivity.
 
-AI responses powered by Google Gemini API
+Built using the **MERN stack**, this project focuses on performance, scalability, and clean UI/UX.
 
-Text-to-Speech replies
+---
 
-Bengali voice supported (bn-IN)
+## ✨ Key Features
 
-🌐 Smart Browser Commands
+* 🤖 AI-powered chat assistant
+* 🧠 Real-time response generation
+* ⚡ Fast & responsive UI
+* 🔐 Secure authentication system
+* 🌐 Full-stack architecture
+* 📱 Mobile-friendly design
 
-The assistant can:
+---
 
-🌍 Google Search
+## 🛠️ Tech Stack
 
-▶️ YouTube Search / Play
+<p align="center">
 
-📸 Instagram
+<img src="https://skillicons.dev/icons?i=react,nodejs,express,mongodb,tailwind,js" />
 
-📘 Facebook
+</p>
 
-📰 News
+---
 
-🌦 Weather
+## 📊 GitHub Stats
 
-🧮 Online Calculator
+<p align="center">
 
-💼 LinkedIn Search
+<img src="https://github-readme-stats.vercel.app/api?username=suvojitmanna&show_icons=true&theme=tokyonight" height="150" />
+<img src="https://github-readme-streak-stats.herokuapp.com/?user=suvojitmanna&theme=tokyonight" height="150" />
 
-🎨 UI & User Features
+</p>
 
-Animated UI showing listening & speaking states
+---
 
-Real-time typing animation
+## 🚀 Live Demo
 
-Daily usage limit system
+👉 https://assistgpt-sable.vercel.app
 
-12-hour auto reset
+---
 
-Persistent chat history (MongoDB)
+## 📸 Screenshots
 
-Manual clear history option
+<p align="center">
+  <img src="YOUR_SCREENSHOT_URL" width="800" />
+</p>
 
-Customizable assistant name and avatar
+---
 
-🛠 Tech Stack
-Frontend
+## ⚙️ Installation & Setup
 
-React.js (Context API)
-
-Web Speech API (SpeechRecognition + SpeechSynthesis)
-
-Tailwind CSS
-
-React Toastify
-
-Axios
-
-Backend
-
-Node.js
-
-Express.js
-
-MongoDB + Mongoose
-
-JWT Authentication (HttpOnly cookies)
-
-bcrypt (Password hashing)
-
-Google Gemini API (AI NLP processing)
-
-⚙️ How It Works
-
-The assistant continuously listens for the user's assistant name (wake word).
-
-When detected:
-
-Speech recognition stops.
-
-Voice input is sent to the Gemini API.
-
-Gemini returns:
-
-A spoken response.
-
-A command type (search, open app, etc.).
-
-The assistant:
-
-Speaks the response.
-
-Performs the requested browser action.
-
-Automatically resumes listening.
-
-🔒 Security Features
-
-JWT authentication with HttpOnly cookies
-
-Password hashing with bcrypt
-
-Protected routes via middleware
-
-Server-side reply limit enforcement
-
-MongoDB-based data persistence
-
-🚀 Installation
-Clone the repository
-git clone https://github.com/suvojitmanna/assistgpt.git
-
-Backend Setup
-cd server
+```bash
+git clone https://github.com/suvojitmanna/assistgpt
+cd assistgpt
 npm install
 npm run dev
+```
 
-Frontend Setup
-cd client
-npm install
-npm run dev
+---
 
-🌱 Environment Variables
+## 📌 Roadmap
 
-Create a .env file in your server folder:
+* 🧾 Chat history storage
+* 🌍 Multi-language support
+* 💳 Payment integration
+* 📊 User dashboard
 
-PORT=8000
-MONGO_URI=your_mongodb_connection
-JWT_SECRET=your_secret_key
-GEMINI_API_KEY=your_gemini_api_url
-CLOUDINARY_CLOUD_NAME=xxxx
-CLOUDINARY_API_KEY=xxxx
-CLOUDINARY_API_SECRET=xxxx
+---
 
-👨‍💻 Author
+## 🤝 Contributing
 
-Suvojit Manna
+Contributions are welcome!
+Feel free to fork this repo and submit a PR 🚀
 
-⭐ Support
+---
 
-If you like this project, consider giving it a ⭐ on GitHub.
+## ⭐ Show Your Support
 
-💎 Why This Version Is Better
+If you like this project, give it a ⭐ on GitHub!
 
-Clean markdown formatting
+---
 
-Proper section hierarchy
+## 👨‍💻 Author
 
-Professional tone
+**Suvojit Manna**
+💻 MERN Developer | 🚀 AI Enthusiast
 
-Clear feature breakdown
-
-Installation instructions
-
-Security explanation
+---
