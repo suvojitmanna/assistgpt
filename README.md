@@ -34,8 +34,7 @@ It provides a modern chat experience with features like chat history, credits sy
 ## 🖼️ Preview
 
 <p align="center">
-  <img src="<img width="1891" height="919" alt="Screenshot 2026-03-24 222018" src="https://github.com/user-attachments/assets/6a895058-4544-47bc-a013-7ec752041d7c" />
-" width="900"/>
+  <img src="https://github.com/user-attachments/assets/6a895058-4544-47bc-a013-7ec752041d7c" width="900"/>
 </p>
 
 ---
