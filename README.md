@@ -1,106 +1,105 @@
-<h1 align="center">🚀 AssistGPT</h1>
+<h1 align="center">💬 SmartChat</h1>
 
 <p align="center">
-  🤖 AI-Powered Assistant • ⚡ MERN Stack • 🚀 Modern UI
+  🤖 Intelligent AI Chatbot • ⚡ Fast UI • 🚀 Full Stack App
 </p>
 
 <p align="center">
-  <a href="https://assistgpt-sable.vercel.app">🌐 Live Demo</a> •
-  <a href="https://github.com/suvojitmanna/assistgpt">📂 Repository</a>
+  <a href="https://smart-chat-client.vercel.app">🌐 Live Demo</a> •
+  <a href="https://github.com/suvojitmanna/SmartChat">📂 Repository</a>
 </p>
 
 ---
 
-## 🧠 About the Project
+## 🧠 About
 
-AssistGPT is a **full-stack AI assistant application** that enables users to interact with an intelligent chatbot capable of generating responses, assisting with tasks, and enhancing productivity.
+SmartChat is a **full-stack AI chatbot application** that allows users to interact with an intelligent assistant in real-time.
 
-Built using the **MERN stack**, this project focuses on performance, scalability, and clean UI/UX.
+It provides a modern chat experience with features like chat history, credits system, and customizable UI.
 
 ---
 
-## ✨ Key Features
+## ✨ Features
 
-* 🤖 AI-powered chat assistant
-* 🧠 Real-time response generation
-* ⚡ Fast & responsive UI
-* 🔐 Secure authentication system
-* 🌐 Full-stack architecture
-* 📱 Mobile-friendly design
+* 💬 AI-powered chatbot
+* 📜 Chat history management
+* 🔍 Search chat history
+* 💎 Credit-based usage system
+* 🌙 Dark mode support
+* ⚡ Fast and responsive UI
+* 🎨 Clean sidebar-based layout
+
+---
+
+## 🖼️ Preview
+
+<p align="center">
+  <img src="<img width="1891" height="919" alt="Screenshot 2026-03-24 222018" src="https://github.com/user-attachments/assets/6a895058-4544-47bc-a013-7ec752041d7c" />
+" width="900"/>
+</p>
 
 ---
 
 ## 🛠️ Tech Stack
 
-<p align="center">
-
-<img src="https://skillicons.dev/icons?i=react,nodejs,express,mongodb,tailwind,js" />
-
-</p>
-
----
-
-## 📊 GitHub Stats
-
-<p align="center">
-
-<img src="https://github-readme-stats.vercel.app/api?username=suvojitmanna&show_icons=true&theme=tokyonight" height="150" />
-<img src="https://github-readme-streak-stats.herokuapp.com/?user=suvojitmanna&theme=tokyonight" height="150" />
-
-</p>
+* React
+* Node.js
+* Express
+* MongoDB
+* Tailwind CSS
 
 ---
 
 ## 🚀 Live Demo
 
-👉 https://assistgpt-sable.vercel.app
+👉 https://smart-chat-client.vercel.app
 
 ---
 
-## 📸 Screenshots
-
-<p align="center">
-  <img src="YOUR_SCREENSHOT_URL" width="800" />
-</p>
-
----
-
-## ⚙️ Installation & Setup
+## ⚙️ Installation
 
 ```bash
-git clone https://github.com/suvojitmanna/assistgpt
-cd assistgpt
+git clone https://github.com/suvojitmanna/SmartChat
+cd SmartChat
 npm install
 npm run dev
 ```
 
 ---
 
-## 📌 Roadmap
+## 📊 Key Highlights
 
-* 🧾 Chat history storage
-* 🌍 Multi-language support
+* ⚡ Real-time chat experience
+* 💎 Credits system for usage control
+* 📁 Organized chat history
+* 🎯 Clean UI/UX design
+
+---
+
+## 📌 Future Improvements
+
+* 🎤 Voice input support
+* 📱 Mobile app version
 * 💳 Payment integration
-* 📊 User dashboard
+* 🧠 AI personalization
 
 ---
 
 ## 🤝 Contributing
 
-Contributions are welcome!
-Feel free to fork this repo and submit a PR 🚀
+Contributions are welcome! Feel free to fork and submit PR 🚀
 
 ---
 
-## ⭐ Show Your Support
+## ⭐ Support
 
-If you like this project, give it a ⭐ on GitHub!
+If you like this project, give it a ⭐
 
 ---
 
 ## 👨‍💻 Author
 
 **Suvojit Manna**
-💻 MERN Developer | 🚀 AI Enthusiast
+💻 MERN Developer | 🚀 AI Builder
 
 ---
