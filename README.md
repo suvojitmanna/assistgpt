@@ -1,4 +1,7 @@
-<h1 align="center">💬 SmartChat</h1> <p align="center"> 🤖 Intelligent AI Chatbot • ⚡ Fast UI • 🚀 Full Stack App </p> <p align="center"> <a href="https://smart-chat-client.vercel.app">🌐 Live Demo</a> • <a href="https://github.com/suvojitmanna/SmartChat">📂 Repository</a> </p>
+<h1 align="center">💬 SmartChat</h1> <p align="center"> 🤖 Intelligent AI Chatbot • ⚡ Fast UI • 🚀 Full Stack App </p>
+🚀 Built With MERN Stack
+<p align="center"> <img src="https://raw.githubusercontent.com/devicons/devicon/master/icons/mongodb/mongodb-original-wordmark.svg" width="70" /> <img src="https://raw.githubusercontent.com/devicons/devicon/master/icons/express/express-original-wordmark.svg" width="70" /> <img src="https://raw.githubusercontent.com/devicons/devicon/master/icons/react/react-original-wordmark.svg" width="70" /> <img src="https://raw.githubusercontent.com/devicons/devicon/master/icons/nodejs/nodejs-original-wordmark.svg" width="70" /> </p> <p align="center"> <b>MongoDB • Express • React • Node.js</b> </p>
+<p align="center"> <a href="https://smart-chat-client.vercel.app">🌐 Live Demo</a> • <a href="https://github.com/suvojitmanna/SmartChat">📂 Repository</a> </p>
 🖥️ Platform & Browser Support (Optimized)
 <p align="center"> 💻 <b>Windows Ready</b> &nbsp; • &nbsp; 🌐 <b>Chrome Optimized</b> &nbsp; • &nbsp; ⚡ <b>Edge Compatible</b> </p> <p align="center"> ✅ Fully tested on <b>Windows OS</b><br/> ✅ Best performance on <b>Google Chrome</b> & <b>Microsoft Edge</b><br/> ⚡ Smooth, fast & responsive experience </p>
 🧠 About
